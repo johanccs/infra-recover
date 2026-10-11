@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Debugging Loop: Get, Describe, Logs · infra-sim</title>
+<title>The Debugging Loop: Get, Describe, Logs · infra-recover</title>
 <meta name="description" content="You have fixed several broken pods by now, each with a hint about where to look. This lesson removes the hints. It gives you one loop and one table that together tell you, for any pod status, where the explanation is.">
 <meta property="og:title" content="The Debugging Loop: Get, Describe, Logs">
 <meta property="og:description" content="You have fixed several broken pods by now, each with a hint about where to look. This lesson removes the hints. It gives you one loop and one table that together tell you, for any pod status, where the explanation is.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="15" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Debug a pod whose command cannot be started.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Pod status</dt><dd>The word in the STATUS column of <code>kubectl get pods</code>, such as <code>Running</code>, <code>Pending</code> or <code>CrashLoopBackOff</code>. It is the starting point of every diagnosis.</dd>
+  <dt>Event</dt><dd>A short record of something that happened to an object: scheduled, image pulled, probe failed. <code>kubectl describe</code> lists them at the bottom.</dd>
+  <dt><code>CrashLoopBackOff</code></dt><dd>The container starts, exits, and is restarted with a growing wait between attempts. The cause is in the logs.</dd>
+  <dt><code>ImagePullBackOff</code></dt><dd>The node cannot download the image: a wrong name or tag, or no permission. The cause is in the events.</dd>
+  <dt>Previous logs</dt><dd>The output of the container run before the current one, shown by <code>kubectl logs --previous</code>. Needed when a container keeps restarting.</dd>
+</dl>
+</details>
 
 <h2 id="the-loop">The loop</h2>
 
@@ -189,9 +201,11 @@ You can't <code>kubectl exec</code> into a container that keeps crashing. Reprod
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

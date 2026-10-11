@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Building Images: Dockerfile, Layers and Cache · infra-sim</title>
+<title>Building Images: Dockerfile, Layers and Cache · infra-recover</title>
 <meta name="description" content="So far you have run other people&#x27;s images. Now you package your own application, learn why the order of lines in a Dockerfile matters, and debug a build that fails and an image that builds but will not run.">
 <meta property="og:title" content="Building Images: Dockerfile, Layers and Cache">
 <meta property="og:description" content="So far you have run other people&#x27;s images. Now you package your own application, learn why the order of lines in a Dockerfile matters, and debug a build that fails and an image that builds but will not run.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="4" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -41,6 +42,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Dockerfile</dt><dd>A text file of instructions that Docker follows, top to bottom, to build an image.</dd>
+  <dt>Build context</dt><dd>The folder you hand to <code>docker build</code> (often <code>.</code>). Only files inside it can be copied into the image.</dd>
+  <dt>Base image</dt><dd>The image named after <code>FROM</code>. Your image starts as a copy of it and adds to it.</dd>
+  <dt>Layer</dt><dd>The set of file changes made by one instruction. An image is a stack of layers, and layers are shared between images.</dd>
+  <dt>Build cache</dt><dd>Docker's memory of layers it has already built. If an instruction and its inputs have not changed, the layer is reused and the step is skipped.</dd>
+  <dt>Multi-stage build</dt><dd>A Dockerfile with several <code>FROM</code> lines. Early stages compile the app, and the last stage copies in only the result, so the final image stays small.</dd>
+</dl>
+</details>
+
 <h2 id="the-situation">The situation</h2>
 <p>You wrote a small web service. It runs on your laptop with <code>node server.js</code>. To ship it, the team needs an image. A Dockerfile is the recipe that turns your source directory into one.</p>
 
@@ -53,6 +66,19 @@ RUN npm ci --omit=dev
 COPY . .
 EXPOSE 3000
 CMD [&quot;node&quot;, &quot;server.js&quot;]</code></pre>
+
+<details class="lbl">
+<summary>Line by line: Dockerfile</summary>
+<dl>
+  <dt><code>FROM node:24-alpine</code></dt><dd>Start from the official Node.js 24 image built on Alpine Linux, a very small Linux. Everything below is added on top of it.</dd>
+  <dt><code>WORKDIR /app</code></dt><dd>Create the folder <code>/app</code> in the image and make it the current folder for every later line, and for the running container.</dd>
+  <dt><code>COPY package*.json ./</code></dt><dd>Copy only <code>package.json</code> and <code>package-lock.json</code> from your project into <code>/app</code>. Copying them alone lets the next step be cached.</dd>
+  <dt><code>RUN npm ci --omit=dev</code></dt><dd>Run a command while building. <code>npm ci</code> installs exactly the versions in the lock file, and <code>--omit=dev</code> leaves out the packages needed only for development.</dd>
+  <dt><code>COPY . .</code></dt><dd>Copy the rest of your project into <code>/app</code>. Source code changes often, so it comes after the slow install step.</dd>
+  <dt><code>EXPOSE 3000</code></dt><dd>A note that the program listens on port 3000. It opens nothing. You still publish the port with <code>-p</code> when you run the container.</dd>
+  <dt><code>CMD [&quot;node&quot;, &quot;server.js&quot;]</code></dt><dd>The command a container runs when it starts. Nothing happens at build time.</dd>
+</dl>
+</details>
 
 <table>
   <thead><tr><th scope="col">Instruction</th><th scope="col">What it does</th><th scope="col">When it takes effect</th></tr></thead>
@@ -156,6 +182,17 @@ RUN npm run build
 FROM nginx:1.29-alpine
 COPY --from=build /app/dist /usr/share/nginx/html</code></pre>
 
+<details class="lbl">
+<summary>Line by line: Dockerfile (multi-stage)</summary>
+<dl>
+  <dt><code>FROM node:24-alpine AS build</code></dt><dd>Start the first stage and name it <code>build</code>. It has Node.js and is used only to compile the app.</dd>
+  <dt><code>COPY package*.json ./</code> and <code>RUN npm ci</code></dt><dd>Install all packages, including the development ones, because the build tools are among them.</dd>
+  <dt><code>COPY . .</code> and <code>RUN npm run build</code></dt><dd>Copy the source code and build it. The result lands in <code>/app/dist</code>.</dd>
+  <dt><code>FROM nginx:1.29-alpine</code></dt><dd>Start a second, fresh stage from the nginx web server image. Nothing from the first stage comes along by itself.</dd>
+  <dt><code>COPY --from=build /app/dist /usr/share/nginx/html</code></dt><dd>Copy only the built files out of the <code>build</code> stage into the folder nginx serves. The last stage is the image you ship.</dd>
+</dl>
+</details>
+
 <p>The final image contains nginx and the built files, and nothing of Node.js, <code>node_modules</code> or your source code. Smaller images pull faster and have fewer packages that can contain vulnerabilities.</p>
 
 <div class="callout tip"><span class="title">Two more habits</span>
@@ -233,9 +270,11 @@ COPY --from=build /app/dist /usr/share/nginx/html</code></pre>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Compose file</dt><dd>A YAML file, usually `compose.yaml`, that describes a whole set of containers, networks and volumes so one command can start them.</dd>
+  <dt>Service</dt><dd>One entry under `services:`. It describes one kind of container: its image, ports, environment and volumes. Its name is also its DNS name.</dd>
+  <dt>Project</dt><dd>Everything one Compose file creates. Compose prefixes names with the project name, which is the folder name by default.</dd>
+  <dt>`depends_on`</dt><dd>Tells Compose which services to start first. In its short form it waits only for the container to start, not for the program inside to be ready.</dd>
+  <dt>Healthcheck</dt><dd>A command Docker runs inside a container at intervals to decide whether the program is working. The result is the `healthy` or `unhealthy` status.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>In Lesson 6 you started the database and the API by hand. A new colleague needs the same setup on their machine, and next month there will be five services. The commands have to become a file.</p>
 
@@ -46,6 +57,21 @@ services:
 volumes:
   dbdata:
 ```
+
+<details class="lbl">
+<summary>Line by line: compose.yaml</summary>
+<dl>
+  <dt>`services:`</dt><dd>The containers of this application. Each key below it (`db`, `api`) is one service.</dd>
+  <dt>`db:` / `image: postgres:17`</dt><dd>A service named `db` running PostgreSQL 17. Other services reach it under the host name `db`.</dd>
+  <dt>`environment:`</dt><dd>Environment variables for the container. The postgres image reads these two to create the user and set its password on first start.</dd>
+  <dt>`volumes:` / `- dbdata:/var/lib/postgresql/data`</dt><dd>Mount the named volume `dbdata` at the folder where PostgreSQL keeps its files, so the data survives when the container is replaced.</dd>
+  <dt>`api:` / `image: shop/api:1.0`</dt><dd>A second service, running the API image.</dd>
+  <dt>`DATABASE_URL: postgres://shop:secret@db:5432/shop`</dt><dd>The connection string. The host is `db`, the service name, which Compose makes resolvable on the project's network. It is not `localhost`.</dd>
+  <dt>`ports:` / `- "3000:3000"`</dt><dd>Publish host port 3000 to container port 3000. The quotes stop YAML from reading `xx:yy` as a number.</dd>
+  <dt>`depends_on:` / `- db`</dt><dd>Start `db` before `api`. This waits for the container to start, not for the database to accept connections.</dd>
+  <dt>`volumes:` / `dbdata:` (at the bottom)</dt><dd>Declares the named volume used above. Compose creates it on the first `up` and keeps it on `down`.</dd>
+</dl>
+</details>
 
 <p>Every key maps to something you already know:</p>
 <table>
@@ -106,6 +132,17 @@ services:
       db:
         condition: service_healthy
 ```
+
+<details class="lbl">
+<summary>Line by line: the healthcheck</summary>
+<dl>
+  <dt>`healthcheck:`</dt><dd>A check Docker runs inside the `db` container to decide whether it is healthy.</dd>
+  <dt>`test: ["CMD-SHELL", "pg_isready -U shop"]`</dt><dd>The command to run, through a shell. `pg_isready` comes with PostgreSQL and succeeds once the server accepts connections.</dd>
+  <dt>`interval: 5s`</dt><dd>Run the check every five seconds.</dd>
+  <dt>`retries: 10`</dt><dd>Mark the container `unhealthy` after ten failures in a row.</dd>
+  <dt>`depends_on:` / `db:` / `condition: service_healthy`</dt><dd>The long form of `depends_on`. Compose now starts `api` only after `db` reports `healthy`, not merely started.</dd>
+</dl>
+</details>
 
 <h2>Debugging a stack: outside in</h2>
 <p>When the application as a whole is broken, follow a request from the outside inwards, and at each hop ask the same three questions.</p>

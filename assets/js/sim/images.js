@@ -1,4 +1,4 @@
-/* infra-sim — image registry, simulated applications and container processes. */
+/* infra-recover — image registry, simulated applications and container processes. */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, NetError = S.NetError;

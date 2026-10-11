@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Troubleshooting Argo CD and the Capstone · infra-sim</title>
+<title>Troubleshooting Argo CD and the Capstone · infra-recover</title>
 <meta name="description" content="Argo CD sits on top of everything you have learned: git, Helm, Kubernetes objects, pods. When it reports a problem, the cause can be at any of those levels. This last lesson gives you a map of where each Argo CD error comes from, and ends with an incident that needs the whole course.">
 <meta property="og:title" content="Troubleshooting Argo CD and the Capstone">
 <meta property="og:description" content="Argo CD sits on top of everything you have learned: git, Helm, Kubernetes objects, pods. When it reports a problem, the cause can be at any of those levels. This last lesson gives you a map of where each Argo CD error comes from, and ends with an incident that needs the whole course.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="25" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Decide whether a fix belongs in git, in the Application, or in the cluster.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Comparison error</dt><dd>Argo CD cannot work out what git asks for: the repository is unreachable, or the manifests do not render.</dd>
+  <dt>Sync error</dt><dd>Argo CD knows what to apply and the cluster refuses it, for example an invalid field or a missing permission.</dd>
+  <dt><code>OutOfSync</code></dt><dd>The cluster differs from git. It says nothing about whether the app works.</dd>
+  <dt><code>Degraded</code></dt><dd>The objects were applied and are not working, for example pods that crash. This is a Kubernetes problem that Argo CD is reporting.</dd>
+  <dt>Repo server</dt><dd>The Argo CD component that fetches the repository and renders the manifests.</dd>
+</dl>
+</details>
 
 <h2 id="three-stages-three-kinds-of-failure">Three stages, three kinds of failure</h2>
 
@@ -222,9 +234,11 @@ kubectl -n NS logs NAME                 # logs</code></pre>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

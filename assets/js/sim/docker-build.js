@@ -1,4 +1,4 @@
-/* infra-sim — `docker build` (BuildKit-style output) and `docker compose`. */
+/* infra-recover — `docker build` (BuildKit-style output) and `docker compose`. */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, D = S.docker;

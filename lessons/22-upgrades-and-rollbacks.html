@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Upgrades, Rollbacks and Broken Releases · infra-sim</title>
+<title>Upgrades, Rollbacks and Broken Releases · infra-recover</title>
 <meta name="description" content="Installing a chart is the easy part. Releases live for years and are upgraded hundreds of times, and that is where values get lost, upgrades fail half-way, and a release ends up in a state where Helm refuses to touch it. This lesson covers each of those and the way out.">
 <meta property="og:title" content="Upgrades, Rollbacks and Broken Releases">
 <meta property="og:description" content="Installing a chart is the easy part. Releases live for years and are upgraded hundreds of times, and that is where values get lost, upgrades fail half-way, and a release ends up in a state where Helm refuses to touch it. This lesson covers each of those and the way out.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="22" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Recover a release stuck in <code>pending-upgrade</code>.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Upgrade</dt><dd>Applying a new chart version or new values to an existing release. It creates a new revision.</dd>
+  <dt>Rollback</dt><dd>Returning a release to an earlier revision with <code>helm rollback</code>. This too is recorded as a new revision.</dd>
+  <dt>History</dt><dd>The list of revisions of a release with their status, from <code>helm history</code>.</dd>
+  <dt><code>--wait</code></dt><dd>Makes Helm wait until the new pods are ready, and report failure if they are not ready in time.</dd>
+  <dt>Pending release</dt><dd>A release stuck in a <code>pending-…</code> status because an operation was interrupted. Helm refuses new operations until it is cleared.</dd>
+</dl>
+</details>
 
 <h2 id="which-values-does-an-upgrade-use">Which values does an upgrade use?</h2>
 <p>This is the most common Helm surprise. An upgrade computes the values <em>from scratch</em>:</p>
@@ -212,9 +224,11 @@ Each revision is a Secret named <code>sh.helm.release.v1.NAME.vN</code> in the r
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* infra-sim — the `kubectl` CLI, part 2: describe, rollout, scale, set, expose, edit, patch, top, nodes, auth, port-forward, wait. */
+/* infra-recover — the `kubectl` CLI, part 2: describe, rollout, scale, set, expose, edit, patch, top, nodes, auth, port-forward, wait. */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, K8 = S.k8s, BY_KIND = K8.BY_KIND, kc = S.kubectl, cmds = kc.cmds;

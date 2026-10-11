@@ -1,4 +1,4 @@
-/* infra-sim — simulator core: clock, virtual file system, shell, networking.
+/* infra-recover — simulator core: clock, virtual file system, shell, networking.
    Everything here is plain JavaScript with no DOM access, so it also runs under Node for the tests. */
 (function (g) {
   "use strict";
@@ -831,7 +831,7 @@
   builtins.watch = function () { throw new CmdError("watch: not available in the sandbox. Run the command again instead (press ↑ then Enter); time keeps moving between commands."); };
   builtins.help = function (a, io) {
     io.out([
-      "infra-sim sandbox — a simulated Linux shell with Docker, Kubernetes, Helm and Argo CD.",
+      "infra-recover sandbox — a simulated Linux shell with Docker, Kubernetes, Helm and Argo CD.",
       "",
       "Tools:      docker (and docker compose), kubectl (alias: k), helm, argocd, git",
       "Files:      ls cat cd pwd mkdir rm cp mv touch nano|vi (opens an editor) sed -i",

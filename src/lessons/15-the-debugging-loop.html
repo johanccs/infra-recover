@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Pod status</dt><dd>The word in the STATUS column of `kubectl get pods`, such as `Running`, `Pending` or `CrashLoopBackOff`. It is the starting point of every diagnosis.</dd>
+  <dt>Event</dt><dd>A short record of something that happened to an object: scheduled, image pulled, probe failed. `kubectl describe` lists them at the bottom.</dd>
+  <dt>`CrashLoopBackOff`</dt><dd>The container starts, exits, and is restarted with a growing wait between attempts. The cause is in the logs.</dd>
+  <dt>`ImagePullBackOff`</dt><dd>The node cannot download the image: a wrong name or tag, or no permission. The cause is in the events.</dd>
+  <dt>Previous logs</dt><dd>The output of the container run before the current one, shown by `kubectl logs --previous`. Needed when a container keeps restarting.</dd>
+</dl>
+</details>
+
 <h2>The loop</h2>
 
 ```plaintext

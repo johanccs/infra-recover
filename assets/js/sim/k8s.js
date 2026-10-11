@@ -1,4 +1,4 @@
-/* infra-sim — a simulated Kubernetes cluster: API store, validation, controllers, scheduler, kubelet, networking.
+/* infra-recover — a simulated Kubernetes cluster: API store, validation, controllers, scheduler, kubelet, networking.
    Models the behaviour of recent Kubernetes (v1.34–v1.37) closely enough to practise troubleshooting. */
 (function (g) {
   "use strict";

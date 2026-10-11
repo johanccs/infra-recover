@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Volumes: Data That Survives the Container · infra-sim</title>
+<title>Volumes: Data That Survives the Container · infra-recover</title>
 <meta name="description" content="Containers are meant to be thrown away and replaced. Databases are not. This lesson explains where a container&#x27;s data really lives and how to keep the part that matters.">
 <meta property="og:title" content="Volumes: Data That Survives the Container">
 <meta property="og:description" content="Containers are meant to be thrown away and replaced. Databases are not. This lesson explains where a container&#x27;s data really lives and how to keep the part that matters.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="5" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Find out why data disappeared when a container was replaced.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Writable layer</dt><dd>The thin layer each container gets on top of its image. Everything the container writes lands there, and it is deleted with the container.</dd>
+  <dt>Volume</dt><dd>Storage that Docker manages outside any container. It survives when the container is removed and can be attached to a new one.</dd>
+  <dt>Named volume</dt><dd>A volume you gave a name, such as <code>dbdata</code>, so you can find and reuse it.</dd>
+  <dt>Bind mount</dt><dd>A folder or file from your machine made visible inside the container at a path you choose. Changes show up on both sides at once.</dd>
+  <dt>Mount path</dt><dd>The path inside the container where a volume or bind mount appears. It hides whatever the image had at that path.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>The shop stores its orders in PostgreSQL, running in a container. Every deployment replaces that container with a new one. The orders have to still be there afterwards.</p>
@@ -190,9 +202,11 @@ docker volume prune                         # delete anonymous volumes no contai
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

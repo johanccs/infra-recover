@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Namespaces, RBAC and Quotas · infra-sim</title>
+<title>Namespaces, RBAC and Quotas · infra-recover</title>
 <meta name="description" content="On a shared cluster, some failures have nothing to do with your application: the cluster simply refuses what you ask, because of who you are or how much you have already used. These refusals are precise. This lesson shows how to read them and how to grant exactly what is missing.">
 <meta property="og:title" content="Namespaces, RBAC and Quotas">
 <meta property="og:description" content="On a shared cluster, some failures have nothing to do with your application: the cluster simply refuses what you ask, because of who you are or how much you have already used. These refusals are precise. This lesson shows how to read them and how to grant exactly what is missing.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="19" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,19 @@
     <li>Find out why a workload has fewer pods than replicas when a quota is involved.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Namespace</dt><dd>A named area that separates objects, permissions and quotas inside one cluster.</dd>
+  <dt>RBAC</dt><dd>Role-based access control: the rules that decide who may do what with which objects.</dd>
+  <dt>Role</dt><dd>A list of allowed actions on kinds of objects, inside one namespace. A ClusterRole is the cluster-wide version.</dd>
+  <dt>RoleBinding</dt><dd>Gives a Role to a user, group or ServiceAccount.</dd>
+  <dt>ServiceAccount</dt><dd>An identity for a program running in the cluster, as opposed to a person.</dd>
+  <dt>Verb</dt><dd>An action in an RBAC rule: <code>get</code>, <code>list</code>, <code>watch</code>, <code>create</code>, <code>update</code>, <code>patch</code> or <code>delete</code>.</dd>
+  <dt>ResourceQuota</dt><dd>A cap on what one namespace may use in total, such as the number of pods or the sum of CPU requests.</dd>
+</dl>
+</details>
 
 <h2 id="namespaces">Namespaces</h2>
 <p>A namespace is a named partition of the cluster. Most objects live in exactly one: pods, Deployments, Services, ConfigMaps, Secrets, claims. Names only have to be unique within a namespace, and permissions, quotas and network policies are attached per namespace.</p>
@@ -106,6 +120,19 @@ roleRef:
   kind: Role
   name: deploy-manager</code></pre>
 
+<details class="lbl">
+<summary>Line by line: the Role and its RoleBinding</summary>
+<dl>
+  <dt><code>kind: Role</code> / <code>namespace: team-a</code></dt><dd>A set of permissions that is valid only in the namespace <code>team-a</code>.</dd>
+  <dt><code>apiGroups: [&quot;apps&quot;]</code></dt><dd>The API group the rule covers. Deployments are in <code>apps</code>. Pods, Services and Secrets are in the core group, written as <code>&quot;&quot;</code>.</dd>
+  <dt><code>resources: [&quot;deployments&quot;]</code></dt><dd>The kind of object the rule covers, in lower case and plural.</dd>
+  <dt><code>verbs: [...]</code></dt><dd>The actions allowed. <code>delete</code> is not listed, so whoever holds this Role cannot delete a Deployment.</dd>
+  <dt><code>kind: RoleBinding</code></dt><dd>The object that hands the Role to someone. A Role by itself gives nobody anything.</dd>
+  <dt><code>subjects:</code> / <code>kind: ServiceAccount</code> / <code>name: deployer</code></dt><dd>Who receives the permissions: the ServiceAccount <code>deployer</code> in <code>team-a</code>.</dd>
+  <dt><code>roleRef:</code> / <code>kind: Role</code> / <code>name: deploy-manager</code></dt><dd>Which Role is handed out. This part cannot be changed later. To point at another Role you delete the binding and create a new one.</dd>
+</dl>
+</details>
+
 <pre><code class="language-bash">kubectl create serviceaccount deployer
 kubectl create role deploy-manager --verb=get,list,watch,create,update,patch --resource=deployments
 kubectl create rolebinding deployer-binding --role=deploy-manager --serviceaccount=team-a:deployer</code></pre>
@@ -170,6 +197,17 @@ spec:
     pods: &quot;8&quot;
     requests.cpu: &quot;2&quot;
     requests.memory: 2Gi</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the ResourceQuota</summary>
+<dl>
+  <dt><code>kind: ResourceQuota</code> / <code>namespace: shop</code></dt><dd>A cap that applies to the whole <code>shop</code> namespace.</dd>
+  <dt><code>hard:</code></dt><dd>The limits that may not be exceeded.</dd>
+  <dt><code>pods: &quot;8&quot;</code></dt><dd>At most eight pods in the namespace.</dd>
+  <dt><code>requests.cpu: &quot;2&quot;</code></dt><dd>The CPU requests of all pods together may not exceed two cores. Once CPU is under quota, a pod that states no CPU request is refused.</dd>
+  <dt><code>requests.memory: 2Gi</code></dt><dd>The same for memory requests: two gibibytes in total.</dd>
+</dl>
+</details>
 
 <pre><code class="language-bash">kubectl describe resourcequota -n shop       # Used versus Hard</code></pre>
 
@@ -261,9 +299,11 @@ When a Deployment has fewer pods than it should and no pod looks unhealthy, look
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

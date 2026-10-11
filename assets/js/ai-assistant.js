@@ -1,4 +1,4 @@
-/* infra-sim — "Ask AI" tutor
+/* infra-recover — "Ask AI" tutor
  *
  * Select text on any page, then right-click it (or click the floating "Ask AI" button)
  * to ask a question about it. Questions go directly from your browser to the OpenAI
@@ -28,7 +28,7 @@
   };
 
   var SYSTEM_PROMPT = [
-    "You are an expert Docker, Kubernetes, Helm and Argo CD tutor embedded in a self-paced, scenario-based course called \"infra-sim\".",
+    "You are an expert Docker, Kubernetes, Helm and Argo CD tutor embedded in a self-paced, scenario-based course called \"infra-recover\".",
     "The learner is a junior-to-intermediate developer who wants to LEARN how these tools work and how to fix them when they break, so optimize for understanding, not just for an answer.",
     "",
     "About the course's sandbox (important):",
@@ -279,7 +279,7 @@
     wrap.hidden = true;
     wrap.innerHTML =
       '<div class="ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-title">' +
-        '<header><h2 id="ai-title">✨ Ask the infra-sim tutor</h2>' +
+        '<header><h2 id="ai-title">✨ Ask the infra-recover tutor</h2>' +
           '<button type="button" class="icon-btn" data-act="new" title="Start a new conversation">New</button>' +
           '<button type="button" class="icon-btn" data-act="settings" title="AI settings" aria-label="AI settings">⚙</button>' +
           '<button type="button" class="icon-btn" data-act="close" title="Close (Esc)" aria-label="Close">✕</button></header>' +

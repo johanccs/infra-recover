@@ -19,6 +19,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Template</dt><dd>A manifest with placeholders in double braces. Helm fills them in from the values to produce plain YAML.</dd>
+  <dt>Built-in object</dt><dd>Data Helm hands to every template: `.Values`, `.Release`, `.Chart` and others.</dd>
+  <dt>Pipeline</dt><dd>Passing a value through functions with `|`, as in `{{ .Values.name | quote }}`.</dd>
+  <dt>Helper</dt><dd>A named snippet in `_helpers.tpl` that templates reuse with `include`.</dd>
+  <dt>`helm lint`</dt><dd>Checks a chart for template and YAML problems without installing it.</dd>
+  <dt>`helm template`</dt><dd>Renders a chart on your machine and prints the manifests. Nothing is sent to the cluster.</dd>
+</dl>
+</details>
+
 <h2>The layout of a chart</h2>
 
 ```plaintext
@@ -54,6 +66,18 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
 ```
 
+<details class="lbl">
+<summary>Line by line: the template</summary>
+<dl>
+  <dt>`name: {{ .Release.Name }}`</dt><dd>The name you gave the release at `helm install`. Installing as `web` produces `name: web`.</dd>
+  <dt>`replicas: {{ .Values.replicaCount }}`</dt><dd>The value `replicaCount` from `values.yaml`, or from your override.</dd>
+  <dt>`- name: {{ .Chart.Name }}`</dt><dd>The chart's name from `Chart.yaml`, used as the container name.</dd>
+  <dt>`{{ .Values.image.repository }}`</dt><dd>The dots walk down the values: `image`, then `repository`.</dd>
+  <dt>`{{ .Values.image.tag | default .Chart.AppVersion }}`</dt><dd>Use `image.tag` if it is set. If it is empty, use the chart's `appVersion`. The `|` passes the value on the left into the function on the right.</dd>
+  <dt>The quotes around the whole `image:` value</dt><dd>They belong to the YAML, not to Helm. They keep the rendered text a string.</dd>
+</dl>
+</details>
+
 <table>
   <tr><th>Object</th><th>Contains</th></tr>
   <tr><td><code>.Values</code></td><td>The merged values: chart defaults, your files, <code>--set</code></td></tr>
@@ -87,6 +111,18 @@ kind: Ingress
               value: {{ $value | quote }}
             {{- end }}
 ```
+
+<details class="lbl">
+<summary>Line by line: the conditional and the loop</summary>
+<dl>
+  <dt>`{{- if .Values.ingress.enabled }}` … `{{- end }}`</dt><dd>Everything between the two lines is produced only when the value `ingress.enabled` is true. Otherwise the file renders to nothing and no Ingress is created.</dd>
+  <dt>The dash in `{{-`</dt><dd>Removes the whitespace and line break in front of the action, so the control line leaves no empty line in the output.</dd>
+  <dt>`{{- range $key, $value := .Values.env }}`</dt><dd>Loop over the map `env`. On each pass, `$key` holds the name and `$value` holds the value.</dd>
+  <dt>`- name: {{ $key }}`</dt><dd>One list item per entry, with the key as the variable's name.</dd>
+  <dt>`value: {{ $value | quote }}`</dt><dd>The value, wrapped in double quotes by the `quote` function. Environment values must be strings, and without quotes `8080` or `true` would not be.</dd>
+  <dt>`{{- end }}`</dt><dd>Closes the loop.</dd>
+</dl>
+</details>
 
 <h3>4. Whitespace</h3>
 <p>A template action leaves its own line behind as an empty line. A dash inside the braces removes whitespace on that side: <code>{{-</code> eats everything before the action up to the previous text, including the line break; <code>-}}</code> does the same after it. That is why control lines are written <code>{{- if … }}</code> and <code>{{- end }}</code>.</p>

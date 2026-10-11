@@ -19,6 +19,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>GitOps</dt><dd>Running a system from git: the repository holds the state you want, and a tool in the cluster makes the cluster match it.</dd>
+  <dt>Argo CD</dt><dd>A GitOps tool for Kubernetes. It runs in the cluster, reads git and applies what it finds.</dd>
+  <dt>Application</dt><dd>The Argo CD object that links one place in git (the source) to one cluster and namespace (the destination).</dd>
+  <dt>Sync status</dt><dd>Whether the cluster matches git: `Synced` or `OutOfSync`.</dd>
+  <dt>Health status</dt><dd>Whether the objects actually work: `Healthy`, `Progressing` or `Degraded`.</dd>
+  <dt>Sync</dt><dd>The operation that applies what is in git to the cluster.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>Three people deploy the shop, each with their own kubeconfig and their own habits. Nobody can say with certainty what is running in production, or who changed the replica count last Tuesday. The team decides: from now on, production is whatever is on the <code>main</code> branch of the <code>gitops</code> repository.</p>
 
@@ -75,6 +87,22 @@ spec:
     syncOptions:
       - CreateNamespace=true
 ```
+
+<details class="lbl">
+<summary>Line by line: the Application</summary>
+<dl>
+  <dt>`apiVersion: argoproj.io/v1alpha1` / `kind: Application`</dt><dd>An object type that Argo CD adds to the cluster. It is not part of Kubernetes itself.</dd>
+  <dt>`metadata:` / `name: shop` / `namespace: argocd`</dt><dd>The Application object lives in the namespace Argo CD runs in, not in the namespace it deploys to.</dd>
+  <dt>`project: default`</dt><dd>The Argo CD project, which is a group of Applications with shared restrictions. `default` allows everything.</dd>
+  <dt>`repoURL:`</dt><dd>The git repository that holds the manifests.</dd>
+  <dt>`targetRevision: HEAD`</dt><dd>What to follow in that repository: here the tip of the default branch. A branch name, a tag or a commit also works.</dd>
+  <dt>`path: apps`</dt><dd>The folder in the repository to read.</dd>
+  <dt>`directory:` / `recurse: true`</dt><dd>Read the subfolders of `apps` too.</dd>
+  <dt>`destination:` / `server: https://kubernetes.default.svc`</dt><dd>The cluster to deploy to. This address means the cluster Argo CD itself runs in.</dd>
+  <dt>`namespace: shop`</dt><dd>The namespace for objects whose manifest names none.</dd>
+  <dt>`syncOptions:` / `- CreateNamespace=true`</dt><dd>Create the `shop` namespace during a sync if it does not exist yet.</dd>
+</dl>
+</details>
 
 <p>The same thing with the CLI:</p>
 

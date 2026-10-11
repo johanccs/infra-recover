@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Upgrade</dt><dd>Applying a new chart version or new values to an existing release. It creates a new revision.</dd>
+  <dt>Rollback</dt><dd>Returning a release to an earlier revision with `helm rollback`. This too is recorded as a new revision.</dd>
+  <dt>History</dt><dd>The list of revisions of a release with their status, from `helm history`.</dd>
+  <dt>`--wait`</dt><dd>Makes Helm wait until the new pods are ready, and report failure if they are not ready in time.</dd>
+  <dt>Pending release</dt><dd>A release stuck in a `pending-…` status because an operation was interrupted. Helm refuses new operations until it is cleared.</dd>
+</dl>
+</details>
+
 <h2>Which values does an upgrade use?</h2>
 <p>This is the most common Helm surprise. An upgrade computes the values <em>from scratch</em>:</p>
 <table>

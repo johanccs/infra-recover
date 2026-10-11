@@ -19,6 +19,19 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Namespace</dt><dd>A named area that separates objects, permissions and quotas inside one cluster.</dd>
+  <dt>RBAC</dt><dd>Role-based access control: the rules that decide who may do what with which objects.</dd>
+  <dt>Role</dt><dd>A list of allowed actions on kinds of objects, inside one namespace. A ClusterRole is the cluster-wide version.</dd>
+  <dt>RoleBinding</dt><dd>Gives a Role to a user, group or ServiceAccount.</dd>
+  <dt>ServiceAccount</dt><dd>An identity for a program running in the cluster, as opposed to a person.</dd>
+  <dt>Verb</dt><dd>An action in an RBAC rule: `get`, `list`, `watch`, `create`, `update`, `patch` or `delete`.</dd>
+  <dt>ResourceQuota</dt><dd>A cap on what one namespace may use in total, such as the number of pods or the sum of CPU requests.</dd>
+</dl>
+</details>
+
 <h2>Namespaces</h2>
 <p>A namespace is a named partition of the cluster. Most objects live in exactly one: pods, Deployments, Services, ConfigMaps, Secrets, claims. Names only have to be unique within a namespace, and permissions, quotas and network policies are attached per namespace.</p>
 
@@ -85,6 +98,19 @@ roleRef:
   kind: Role
   name: deploy-manager
 ```
+
+<details class="lbl">
+<summary>Line by line: the Role and its RoleBinding</summary>
+<dl>
+  <dt>`kind: Role` / `namespace: team-a`</dt><dd>A set of permissions that is valid only in the namespace `team-a`.</dd>
+  <dt>`apiGroups: ["apps"]`</dt><dd>The API group the rule covers. Deployments are in `apps`. Pods, Services and Secrets are in the core group, written as `""`.</dd>
+  <dt>`resources: ["deployments"]`</dt><dd>The kind of object the rule covers, in lower case and plural.</dd>
+  <dt>`verbs: [...]`</dt><dd>The actions allowed. `delete` is not listed, so whoever holds this Role cannot delete a Deployment.</dd>
+  <dt>`kind: RoleBinding`</dt><dd>The object that hands the Role to someone. A Role by itself gives nobody anything.</dd>
+  <dt>`subjects:` / `kind: ServiceAccount` / `name: deployer`</dt><dd>Who receives the permissions: the ServiceAccount `deployer` in `team-a`.</dd>
+  <dt>`roleRef:` / `kind: Role` / `name: deploy-manager`</dt><dd>Which Role is handed out. This part cannot be changed later. To point at another Role you delete the binding and create a new one.</dd>
+</dl>
+</details>
 
 ```bash
 kubectl create serviceaccount deployer
@@ -156,6 +182,17 @@ spec:
     requests.cpu: "2"
     requests.memory: 2Gi
 ```
+
+<details class="lbl">
+<summary>Line by line: the ResourceQuota</summary>
+<dl>
+  <dt>`kind: ResourceQuota` / `namespace: shop`</dt><dd>A cap that applies to the whole `shop` namespace.</dd>
+  <dt>`hard:`</dt><dd>The limits that may not be exceeded.</dd>
+  <dt>`pods: "8"`</dt><dd>At most eight pods in the namespace.</dd>
+  <dt>`requests.cpu: "2"`</dt><dd>The CPU requests of all pods together may not exceed two cores. Once CPU is under quota, a pod that states no CPU request is refused.</dd>
+  <dt>`requests.memory: 2Gi`</dt><dd>The same for memory requests: two gibibytes in total.</dd>
+</dl>
+</details>
 
 ```bash
 kubectl describe resourcequota -n shop       # Used versus Hard

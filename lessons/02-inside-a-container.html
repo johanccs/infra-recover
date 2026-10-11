@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inside a Container: Logs, Exec, Inspect · infra-sim</title>
+<title>Inside a Container: Logs, Exec, Inspect · infra-recover</title>
 <meta name="description" content="Three commands answer almost every question about a container: what did it say, what does it look like from the inside, and how was it configured. This lesson teaches them, and then uses them on a database that refuses to stay up.">
 <meta property="og:title" content="Inside a Container: Logs, Exec, Inspect">
 <meta property="og:description" content="Three commands answer almost every question about a container: what did it say, what does it look like from the inside, and how was it configured. This lesson teaches them, and then uses them on a database that refuses to stay up.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="2" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,18 @@
     <li>Diagnose a container that exits immediately after starting.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Standard output (stdout) and standard error (stderr)</dt><dd>The two text streams every program writes to. Docker captures both, and <code>docker logs</code> shows them.</dd>
+  <dt>PID 1</dt><dd>The first process in a container, started from the image's command. When it ends, the container stops.</dd>
+  <dt>Exit code</dt><dd>The number a process returns when it ends. 0 means success and anything else means a failure. <code>docker ps -a</code> shows it.</dd>
+  <dt><code>docker exec</code></dt><dd>Runs an extra command inside a container that is already running, for example a shell to look around.</dd>
+  <dt><code>docker inspect</code></dt><dd>Prints the full configuration and state of a container as JSON: its command, environment, mounts, network and why it stopped.</dd>
+  <dt>Lifecycle</dt><dd>The states a container moves through: created, running, exited (stopped) and removed.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>A container is running on a machine you have just been handed. Nobody remembers how it was started. Later, a second container is started and vanishes from <code>docker ps</code> within a second. Both situations are solved with the same small toolkit.</p>
@@ -184,9 +197,11 @@ A container's image, command, environment variables, port mappings and mounts ar
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

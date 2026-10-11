@@ -1,4 +1,4 @@
-/* infra-sim — browser terminal, file editor and scenario (lab) panel. */
+/* infra-recover — browser terminal, file editor and scenario (lab) panel. */
 (function () {
   "use strict";
   var S = window.InfraSim;

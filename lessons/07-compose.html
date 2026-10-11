@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docker Compose: A Whole Stack in One File · infra-sim</title>
+<title>Docker Compose: A Whole Stack in One File · infra-recover</title>
 <meta name="description" content="Three containers, a network, a volume, five environment variables: typing that as docker run commands every time is slow and error-prone. Compose describes the whole application in one file that you can read, review and commit.">
 <meta property="og:title" content="Docker Compose: A Whole Stack in One File">
 <meta property="og:description" content="Three containers, a network, a volume, five environment variables: typing that as docker run commands every time is slow and error-prone. Compose describes the whole application in one file that you can read, review and commit.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="7" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -41,6 +42,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Compose file</dt><dd>A YAML file, usually <code>compose.yaml</code>, that describes a whole set of containers, networks and volumes so one command can start them.</dd>
+  <dt>Service</dt><dd>One entry under <code>services:</code>. It describes one kind of container: its image, ports, environment and volumes. Its name is also its DNS name.</dd>
+  <dt>Project</dt><dd>Everything one Compose file creates. Compose prefixes names with the project name, which is the folder name by default.</dd>
+  <dt><code>depends_on</code></dt><dd>Tells Compose which services to start first. In its short form it waits only for the container to start, not for the program inside to be ready.</dd>
+  <dt>Healthcheck</dt><dd>A command Docker runs inside a container at intervals to decide whether the program is working. The result is the <code>healthy</code> or <code>unhealthy</code> status.</dd>
+</dl>
+</details>
+
 <h2 id="the-situation">The situation</h2>
 <p>In Lesson 6 you started the database and the API by hand. A new colleague needs the same setup on their machine, and next month there will be five services. The commands have to become a file.</p>
 
@@ -66,6 +78,21 @@
 
 volumes:
   dbdata:</code></pre>
+
+<details class="lbl">
+<summary>Line by line: compose.yaml</summary>
+<dl>
+  <dt><code>services:</code></dt><dd>The containers of this application. Each key below it (<code>db</code>, <code>api</code>) is one service.</dd>
+  <dt><code>db:</code> / <code>image: postgres:17</code></dt><dd>A service named <code>db</code> running PostgreSQL 17. Other services reach it under the host name <code>db</code>.</dd>
+  <dt><code>environment:</code></dt><dd>Environment variables for the container. The postgres image reads these two to create the user and set its password on first start.</dd>
+  <dt><code>volumes:</code> / <code>- dbdata:/var/lib/postgresql/data</code></dt><dd>Mount the named volume <code>dbdata</code> at the folder where PostgreSQL keeps its files, so the data survives when the container is replaced.</dd>
+  <dt><code>api:</code> / <code>image: shop/api:1.0</code></dt><dd>A second service, running the API image.</dd>
+  <dt><code>DATABASE_URL: postgres://shop:secret@db:5432/shop</code></dt><dd>The connection string. The host is <code>db</code>, the service name, which Compose makes resolvable on the project's network. It is not <code>localhost</code>.</dd>
+  <dt><code>ports:</code> / <code>- &quot;3000:3000&quot;</code></dt><dd>Publish host port 3000 to container port 3000. The quotes stop YAML from reading <code>xx:yy</code> as a number.</dd>
+  <dt><code>depends_on:</code> / <code>- db</code></dt><dd>Start <code>db</code> before <code>api</code>. This waits for the container to start, not for the database to accept connections.</dd>
+  <dt><code>volumes:</code> / <code>dbdata:</code> (at the bottom)</dt><dd>Declares the named volume used above. Compose creates it on the first <code>up</code> and keeps it on <code>down</code>.</dd>
+</dl>
+</details>
 
 <p>Every key maps to something you already know:</p>
 <table>
@@ -122,6 +149,17 @@ Compose reports <b>Started</b> as soon as the container's process has been launc
     depends_on:
       db:
         condition: service_healthy</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the healthcheck</summary>
+<dl>
+  <dt><code>healthcheck:</code></dt><dd>A check Docker runs inside the <code>db</code> container to decide whether it is healthy.</dd>
+  <dt><code>test: [&quot;CMD-SHELL&quot;, &quot;pg_isready -U shop&quot;]</code></dt><dd>The command to run, through a shell. <code>pg_isready</code> comes with PostgreSQL and succeeds once the server accepts connections.</dd>
+  <dt><code>interval: 5s</code></dt><dd>Run the check every five seconds.</dd>
+  <dt><code>retries: 10</code></dt><dd>Mark the container <code>unhealthy</code> after ten failures in a row.</dd>
+  <dt><code>depends_on:</code> / <code>db:</code> / <code>condition: service_healthy</code></dt><dd>The long form of <code>depends_on</code>. Compose now starts <code>api</code> only after <code>db</code> reports <code>healthy</code>, not merely started.</dd>
+</dl>
+</details>
 
 <h2 id="debugging-a-stack-outside-in">Debugging a stack: outside in</h2>
 <p>When the application as a whole is broken, follow a request from the outside inwards, and at each hop ask the same three questions.</p>
@@ -208,9 +246,11 @@ compose.yaml                  → DATABASE_URL uses &quot;database&quot;, the se
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

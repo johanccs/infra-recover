@@ -1,4 +1,4 @@
-/* infra-sim — scenario library and free-play sandbox page. */
+/* infra-recover — scenario library and free-play sandbox page. */
 (function () {
   "use strict";
   var S = window.InfraSim, UI = window.InfraSimUI, course = window.InfraSimCourse || {};

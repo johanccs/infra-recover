@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How Kubernetes Works · infra-sim</title>
+<title>How Kubernetes Works · infra-recover</title>
 <meta name="description" content="Docker runs containers on one machine. Kubernetes runs them on many, keeps them running, and lets you describe what you want instead of what to do. Before the first YAML file, this lesson gives you the map.">
 <meta property="og:title" content="How Kubernetes Works">
 <meta property="og:description" content="Docker runs containers on one machine. Kubernetes runs them on many, keeps them running, and lets you describe what you want instead of what to do. Before the first YAML file, this lesson gives you the map.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="9" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,19 @@
     <li>Follow a pod's creation through its events.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Cluster</dt><dd>A group of machines that Kubernetes manages as one system.</dd>
+  <dt>Node</dt><dd>One machine (virtual or physical) in the cluster. Worker nodes run your containers.</dd>
+  <dt>Control plane</dt><dd>The components that manage the cluster: the API server, the scheduler, the controllers and the etcd database.</dd>
+  <dt>API server</dt><dd>The front door of the cluster. Every command and every component talks to it and nothing else.</dd>
+  <dt>kubelet</dt><dd>The agent on every node. It starts and stops the containers that the control plane assigns to that node.</dd>
+  <dt><code>kubectl</code></dt><dd>The command-line tool that sends your requests to the API server.</dd>
+  <dt>Namespace</dt><dd>A named area inside a cluster that keeps one team's or one app's objects apart from the others.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>The shop outgrew a single Docker host. One machine is a single point of failure, and somebody had to notice and react whenever a container died. The team moved to a three-node Kubernetes cluster, and you have just been given access.</p>
@@ -198,9 +212,11 @@ worker-2   Ready    &lt;none&gt;          4d    v1.37.0</code></pre>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

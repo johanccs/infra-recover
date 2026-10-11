@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Comparison error</dt><dd>Argo CD cannot work out what git asks for: the repository is unreachable, or the manifests do not render.</dd>
+  <dt>Sync error</dt><dd>Argo CD knows what to apply and the cluster refuses it, for example an invalid field or a missing permission.</dd>
+  <dt>`OutOfSync`</dt><dd>The cluster differs from git. It says nothing about whether the app works.</dd>
+  <dt>`Degraded`</dt><dd>The objects were applied and are not working, for example pods that crash. This is a Kubernetes problem that Argo CD is reporting.</dd>
+  <dt>Repo server</dt><dd>The Argo CD component that fetches the repository and renders the manifests.</dd>
+</dl>
+</details>
+
 <h2>Three stages, three kinds of failure</h2>
 
 ```plaintext

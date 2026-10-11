@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Chart</dt><dd>A Helm package: a folder of manifest templates plus default settings. Roughly a NuGet package for a Kubernetes app.</dd>
+  <dt>Release</dt><dd>One installation of a chart in a cluster, under a name you choose. The same chart can be installed several times.</dd>
+  <dt>Values</dt><dd>The settings a chart exposes. Defaults live in the chart's `values.yaml`, and you override them with `-f` or `--set`.</dd>
+  <dt>Repository</dt><dd>A server that hosts charts. You add it once with `helm repo add`.</dd>
+  <dt>Revision</dt><dd>A numbered version of a release. Every install, upgrade and rollback adds one.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>The front end consists of a Deployment, a Service and an optional Ingress. Development wants one replica, production wants three and an Ingress. Copying the manifests per environment and editing them by hand is how the two drift apart.</p>
 
@@ -82,6 +93,19 @@ ingress:
   enabled: false
   host: shop.local
 ```
+
+<details class="lbl">
+<summary>Line by line: values.yaml</summary>
+<dl>
+  <dt>`replicaCount: 2`</dt><dd>How many pods the chart's Deployment asks for, unless you override it.</dd>
+  <dt>`image:` / `repository: shop/web`</dt><dd>The image name, without the tag.</dd>
+  <dt>`tag: ""`</dt><dd>Empty on purpose. The template then falls back to the `appVersion` written in the chart.</dd>
+  <dt>`env:` / `API_URL: http://api:3000`</dt><dd>Environment variables the template passes to the container. You can add more keys here.</dd>
+  <dt>`service:` / `type: ClusterIP` / `port: 80`</dt><dd>The settings for the Service the chart creates.</dd>
+  <dt>`ingress:` / `enabled: false`</dt><dd>A switch. The chart creates an Ingress only when this is `true`.</dd>
+  <dt>`host: shop.local`</dt><dd>The host name used when the Ingress is switched on.</dd>
+</dl>
+</details>
 
 <p>You override values on the command line or, better, in a file of your own:</p>
 

@@ -1,4 +1,4 @@
-/* infra-sim — simulated Helm 4 client: repos, charts, templating, releases, rollback. */
+/* infra-recover — simulated Helm 4 client: repos, charts, templating, releases, rollback. */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, K8 = S.k8s;

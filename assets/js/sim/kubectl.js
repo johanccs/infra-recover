@@ -1,4 +1,4 @@
-/* infra-sim — the `kubectl` CLI, part 1: get, describe, logs, exec, apply, create, delete, run. */
+/* infra-recover — the `kubectl` CLI, part 1: get, describe, logs, exec, apply, create, delete, run. */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, K8 = S.k8s, BY_KIND = K8.BY_KIND, BY_NAME = K8.BY_NAME;

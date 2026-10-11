@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Containers and Images: Your First Container · infra-sim</title>
+<title>Containers and Images: Your First Container · infra-recover</title>
 <meta name="description" content="Before you can fix a container, you need a clear picture of what one is. This lesson builds that picture and has you running, reaching and removing containers within ten minutes.">
 <meta property="og:title" content="Containers and Images: Your First Container">
 <meta property="og:description" content="Before you can fix a container, you need a clear picture of what one is. This lesson builds that picture and has you running, reaching and removing containers within ten minutes.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="1" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -39,6 +40,18 @@
     <li>List, stop and remove containers.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Image</dt><dd>A read-only package holding a program and everything it needs to run: files, libraries and a default start command. Close to a published build output plus the runtime it needs.</dd>
+  <dt>Container</dt><dd>A running (or stopped) instance of an image. It is an ordinary process on the machine, isolated so it sees only its own files, network and process list.</dd>
+  <dt>Registry</dt><dd>A server that stores images. Docker Hub is the default one. <code>docker pull</code> downloads from it and <code>docker push</code> uploads to it.</dd>
+  <dt>Tag</dt><dd>The label after the colon in an image name, as in <code>nginx:1.29</code>. It names one version. Without a tag Docker uses <code>latest</code>.</dd>
+  <dt>Docker Engine</dt><dd>The background service (daemon) that builds, starts and stops containers. The <code>docker</code> command only sends requests to it.</dd>
+  <dt>Container ID</dt><dd>The identifier Docker gives each container. The first few characters, or the container's name, are enough in commands.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>You joined a team whose application "runs in Docker". On your first day somebody says: "just run the web container and check it on port 8080". You have a terminal and no idea what happens when you press Enter. Let's fix that first.</p>
@@ -190,9 +203,11 @@ The terminal is a simulation that runs in this page. It behaves like a Linux she
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

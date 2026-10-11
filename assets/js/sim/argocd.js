@@ -1,4 +1,4 @@
-/* infra-sim — a small git simulation plus Argo CD (application controller + `argocd` CLI, modelled on Argo CD v3). */
+/* infra-recover — a small git simulation plus Argo CD (application controller + `argocd` CLI, modelled on Argo CD v3). */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, K8 = S.k8s;

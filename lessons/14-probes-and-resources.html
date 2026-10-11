@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Health Probes, Requests and Limits · infra-sim</title>
+<title>Health Probes, Requests and Limits · infra-recover</title>
 <meta name="description" content="Kubernetes can only keep an application healthy if it knows what &quot;healthy&quot; means and how much the application needs. You tell it with probes and with resource settings. Both are powerful, and both are a frequent source of self-inflicted outages.">
 <meta property="og:title" content="Health Probes, Requests and Limits">
 <meta property="og:description" content="Kubernetes can only keep an application healthy if it knows what &quot;healthy&quot; means and how much the application needs. You tell it with probes and with resource settings. Both are powerful, and both are a frequent source of self-inflicted outages.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="14" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,19 @@
     <li>Explain "Running, 0/1 Ready" and find the cause.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Probe</dt><dd>A check the kubelet runs against a container at intervals: an HTTP request, a TCP connection or a command.</dd>
+  <dt>Readiness probe</dt><dd>Decides whether a pod receives traffic. While it fails, the pod is taken off the Service's endpoints. The container is not restarted.</dd>
+  <dt>Liveness probe</dt><dd>Decides whether a container is stuck. When it fails often enough, the container is restarted.</dd>
+  <dt>Request</dt><dd>The CPU and memory a container reserves. The scheduler places the pod only on a node with that much free.</dd>
+  <dt>Limit</dt><dd>The most CPU or memory a container may use while it runs.</dd>
+  <dt>OOMKilled</dt><dd>The status of a container that was stopped for using more memory than its limit.</dd>
+  <dt>QoS class</dt><dd>A rank Kubernetes derives from requests and limits (Guaranteed, Burstable, BestEffort). It decides which pods are evicted first when a node runs short of memory.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>Two changes were made to the shop this week "to make it more robust": probes on the front end, and memory limits on the API. One of each was configured wrongly, and both took the shop down.</p>
@@ -71,6 +85,19 @@
         port: 8080
       initialDelaySeconds: 10
       failureThreshold: 3</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the probes</summary>
+<dl>
+  <dt><code>ports:</code> / <code>- containerPort: 8080</code></dt><dd>The port the program listens on. The probes below call the same port.</dd>
+  <dt><code>readinessProbe:</code></dt><dd>The check that decides whether this pod gets traffic.</dd>
+  <dt><code>httpGet:</code> / <code>path: /healthz</code> / <code>port: 8080</code></dt><dd>Send an HTTP GET to <code>/healthz</code> on port 8080 of the container. A status from 200 to 399 counts as success.</dd>
+  <dt><code>periodSeconds: 5</code></dt><dd>Run the check every five seconds.</dd>
+  <dt><code>livenessProbe:</code></dt><dd>The check that decides whether the container must be restarted.</dd>
+  <dt><code>initialDelaySeconds: 10</code></dt><dd>Wait ten seconds after the container starts before the first liveness check, so a slow start is not mistaken for a hang.</dd>
+  <dt><code>failureThreshold: 3</code></dt><dd>Restart the container only after three failed checks in a row.</dd>
+</dl>
+</details>
 
 <table>
   <thead><tr><th scope="col">Mechanism</th><th scope="col">Succeeds when</th></tr></thead>
@@ -117,6 +144,17 @@ web-jm5q9ndbwk-7kxvh   0/1     Running   0          3m</code></pre>
     memory: 128Mi
   limits:              # ENFORCED on the node while the container runs
     memory: 256Mi</code></pre>
+
+<details class="lbl">
+<summary>Line by line: requests and limits</summary>
+<dl>
+  <dt><code>resources:</code></dt><dd>What this container needs and what it may use at most.</dd>
+  <dt><code>requests:</code></dt><dd>The amount reserved for the container. The scheduler looks only at these numbers when it picks a node.</dd>
+  <dt><code>cpu: 100m</code></dt><dd>100 millicores, a tenth of one CPU core.</dd>
+  <dt><code>memory: 128Mi</code></dt><dd>128 mebibytes of memory (1 Mi is 1024 × 1024 bytes).</dd>
+  <dt><code>limits:</code> / <code>memory: 256Mi</code></dt><dd>The hard ceiling. A container that uses more than 256 Mi is stopped and reported as <code>OOMKilled</code>. No CPU limit is set, so the container is never slowed down on purpose.</dd>
+</dl>
+</details>
 
 <table>
   <thead><tr><td></td><th scope="col">Request</th><th scope="col">Limit</th></tr></thead>
@@ -222,9 +260,11 @@ Measure the working set under realistic load with <code>kubectl top pods</code>,
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

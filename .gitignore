@@ -2,3 +2,6 @@ node_modules/
 test-results/
 .DS_Store
 *.log
+# The backup database holds personal notes and this repository is public. Keep it elsewhere (INFRA_RECOVER_DB) to commit it.
+data/
+*.db-journal

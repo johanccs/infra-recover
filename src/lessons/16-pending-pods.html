@@ -19,6 +19,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Pending</dt><dd>A pod that has been accepted by the cluster and is not running yet, usually because no node can take it.</dd>
+  <dt>Scheduler</dt><dd>The control plane component that picks a node for each new pod.</dd>
+  <dt>Taint</dt><dd>A mark on a node that keeps pods away unless they tolerate it.</dd>
+  <dt>Toleration</dt><dd>A setting on a pod that allows it onto nodes with a matching taint. It allows, and does not force.</dd>
+  <dt>`nodeSelector`</dt><dd>A setting on a pod that restricts it to nodes carrying certain labels.</dd>
+  <dt>Cordon and drain</dt><dd>Cordon marks a node so no new pods land on it. Drain also moves the existing pods away, for maintenance.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>Two workloads have been Pending for ten minutes, a node is still marked for a maintenance that ended yesterday, and somebody needs to patch <code>worker-1</code> tonight without an outage.</p>
 
@@ -105,6 +117,16 @@ spec:
       value: batch
       effect: NoSchedule
 ```
+
+<details class="lbl">
+<summary>Line by line: the scheduling settings</summary>
+<dl>
+  <dt>`nodeSelector:` / `disktype: ssd`</dt><dd>Run this pod only on nodes that carry the label `disktype=ssd`. If no node has it, the pod stays Pending.</dd>
+  <dt>`tolerations:`</dt><dd>Taints this pod is willing to accept.</dd>
+  <dt>`key: dedicated` / `operator: Equal` / `value: batch`</dt><dd>Matches a taint whose key is `dedicated` and whose value is exactly `batch`.</dd>
+  <dt>`effect: NoSchedule`</dt><dd>The effect of the taint being tolerated. Together the four lines match the taint `dedicated=batch:NoSchedule`. The toleration lets the pod onto such a node and does not send it there.</dd>
+</dl>
+</details>
 
 <h2>Node maintenance: cordon and drain</h2>
 

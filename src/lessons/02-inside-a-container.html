@@ -19,6 +19,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Standard output (stdout) and standard error (stderr)</dt><dd>The two text streams every program writes to. Docker captures both, and `docker logs` shows them.</dd>
+  <dt>PID 1</dt><dd>The first process in a container, started from the image's command. When it ends, the container stops.</dd>
+  <dt>Exit code</dt><dd>The number a process returns when it ends. 0 means success and anything else means a failure. `docker ps -a` shows it.</dd>
+  <dt>`docker exec`</dt><dd>Runs an extra command inside a container that is already running, for example a shell to look around.</dd>
+  <dt>`docker inspect`</dt><dd>Prints the full configuration and state of a container as JSON: its command, environment, mounts, network and why it stopped.</dd>
+  <dt>Lifecycle</dt><dd>The states a container moves through: created, running, exited (stopped) and removed.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>A container is running on a machine you have just been handed. Nobody remembers how it was started. Later, a second container is started and vanishes from <code>docker ps</code> within a second. Both situations are solved with the same small toolkit.</p>
 

@@ -1,4 +1,4 @@
-/* infra-sim — a subset of Go text/template with the Sprig/Helm functions charts use most.
+/* infra-recover — a subset of Go text/template with the Sprig/Helm functions charts use most.
    Used by `helm template/install/upgrade` and by `docker inspect --format`. */
 (function (g) {
   "use strict";

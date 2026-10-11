@@ -19,6 +19,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Dockerfile</dt><dd>A text file of instructions that Docker follows, top to bottom, to build an image.</dd>
+  <dt>Build context</dt><dd>The folder you hand to `docker build` (often `.`). Only files inside it can be copied into the image.</dd>
+  <dt>Base image</dt><dd>The image named after `FROM`. Your image starts as a copy of it and adds to it.</dd>
+  <dt>Layer</dt><dd>The set of file changes made by one instruction. An image is a stack of layers, and layers are shared between images.</dd>
+  <dt>Build cache</dt><dd>Docker's memory of layers it has already built. If an instruction and its inputs have not changed, the layer is reused and the step is skipped.</dd>
+  <dt>Multi-stage build</dt><dd>A Dockerfile with several `FROM` lines. Early stages compile the app, and the last stage copies in only the result, so the final image stays small.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>You wrote a small web service. It runs on your laptop with <code>node server.js</code>. To ship it, the team needs an image. A Dockerfile is the recipe that turns your source directory into one.</p>
 
@@ -33,6 +45,19 @@ COPY . .
 EXPOSE 3000
 CMD ["node", "server.js"]
 ```
+
+<details class="lbl">
+<summary>Line by line: Dockerfile</summary>
+<dl>
+  <dt>`FROM node:24-alpine`</dt><dd>Start from the official Node.js 24 image built on Alpine Linux, a very small Linux. Everything below is added on top of it.</dd>
+  <dt>`WORKDIR /app`</dt><dd>Create the folder `/app` in the image and make it the current folder for every later line, and for the running container.</dd>
+  <dt>`COPY package*.json ./`</dt><dd>Copy only `package.json` and `package-lock.json` from your project into `/app`. Copying them alone lets the next step be cached.</dd>
+  <dt>`RUN npm ci --omit=dev`</dt><dd>Run a command while building. `npm ci` installs exactly the versions in the lock file, and `--omit=dev` leaves out the packages needed only for development.</dd>
+  <dt>`COPY . .`</dt><dd>Copy the rest of your project into `/app`. Source code changes often, so it comes after the slow install step.</dd>
+  <dt>`EXPOSE 3000`</dt><dd>A note that the program listens on port 3000. It opens nothing. You still publish the port with `-p` when you run the container.</dd>
+  <dt>`CMD ["node", "server.js"]`</dt><dd>The command a container runs when it starts. Nothing happens at build time.</dd>
+</dl>
+</details>
 
 <table>
   <tr><th>Instruction</th><th>What it does</th><th>When it takes effect</th></tr>
@@ -143,6 +168,17 @@ RUN npm run build
 FROM nginx:1.29-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 ```
+
+<details class="lbl">
+<summary>Line by line: Dockerfile (multi-stage)</summary>
+<dl>
+  <dt>`FROM node:24-alpine AS build`</dt><dd>Start the first stage and name it `build`. It has Node.js and is used only to compile the app.</dd>
+  <dt>`COPY package*.json ./` and `RUN npm ci`</dt><dd>Install all packages, including the development ones, because the build tools are among them.</dd>
+  <dt>`COPY . .` and `RUN npm run build`</dt><dd>Copy the source code and build it. The result lands in `/app/dist`.</dd>
+  <dt>`FROM nginx:1.29-alpine`</dt><dd>Start a second, fresh stage from the nginx web server image. Nothing from the first stage comes along by itself.</dd>
+  <dt>`COPY --from=build /app/dist /usr/share/nginx/html`</dt><dd>Copy only the built files out of the `build` stage into the folder nginx serves. The last stage is the image you ship.</dd>
+</dl>
+</details>
 
 <p>The final image contains nginx and the built files, and nothing of Node.js, <code>node_modules</code> or your source code. Smaller images pull faster and have fewer packages that can contain vulnerabilities.</p>
 

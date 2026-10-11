@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Helm Basics: Charts, Releases, Values · infra-sim</title>
+<title>Helm Basics: Charts, Releases, Values · infra-recover</title>
 <meta name="description" content="By now an application is half a dozen YAML files, and each environment needs slightly different numbers in them. Helm packages those files with their variables, installs them as one unit, and remembers every version it installed.">
 <meta property="og:title" content="Helm Basics: Charts, Releases, Values">
 <meta property="og:description" content="By now an application is half a dozen YAML files, and each environment needs slightly different numbers in them. Helm packages those files with their variables, installs them as one unit, and remembers every version it installed.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="20" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Explain what "STATUS: deployed" does and does not mean.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Chart</dt><dd>A Helm package: a folder of manifest templates plus default settings. Roughly a NuGet package for a Kubernetes app.</dd>
+  <dt>Release</dt><dd>One installation of a chart in a cluster, under a name you choose. The same chart can be installed several times.</dd>
+  <dt>Values</dt><dd>The settings a chart exposes. Defaults live in the chart's <code>values.yaml</code>, and you override them with <code>-f</code> or <code>--set</code>.</dd>
+  <dt>Repository</dt><dd>A server that hosts charts. You add it once with <code>helm repo add</code>.</dd>
+  <dt>Revision</dt><dd>A numbered version of a release. Every install, upgrade and rollback adds one.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>The front end consists of a Deployment, a Service and an optional Ingress. Development wants one replica, production wants three and an Ingress. Copying the manifests per environment and editing them by hand is how the two drift apart.</p>
@@ -96,6 +108,19 @@ service:
 ingress:
   enabled: false
   host: shop.local</code></pre>
+
+<details class="lbl">
+<summary>Line by line: values.yaml</summary>
+<dl>
+  <dt><code>replicaCount: 2</code></dt><dd>How many pods the chart's Deployment asks for, unless you override it.</dd>
+  <dt><code>image:</code> / <code>repository: shop/web</code></dt><dd>The image name, without the tag.</dd>
+  <dt><code>tag: &quot;&quot;</code></dt><dd>Empty on purpose. The template then falls back to the <code>appVersion</code> written in the chart.</dd>
+  <dt><code>env:</code> / <code>API_URL: http://api:3000</code></dt><dd>Environment variables the template passes to the container. You can add more keys here.</dd>
+  <dt><code>service:</code> / <code>type: ClusterIP</code> / <code>port: 80</code></dt><dd>The settings for the Service the chart creates.</dd>
+  <dt><code>ingress:</code> / <code>enabled: false</code></dt><dd>A switch. The chart creates an Ingress only when this is <code>true</code>.</dd>
+  <dt><code>host: shop.local</code></dt><dd>The host name used when the Ingress is switched on.</dd>
+</dl>
+</details>
 
 <p>You override values on the command line or, better, in a file of your own:</p>
 
@@ -217,9 +242,11 @@ helm history web -n shop</code></pre>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

@@ -19,6 +19,19 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Pod</dt><dd>The smallest thing Kubernetes runs: one or more containers that share a network address and are started and stopped together.</dd>
+  <dt>Manifest</dt><dd>A YAML file that describes an object you want to exist in the cluster.</dd>
+  <dt>Deployment</dt><dd>An object that says which pod you want and how many copies. Kubernetes keeps that number running and replaces pods when you change the description.</dd>
+  <dt>ReplicaSet</dt><dd>The object a Deployment creates to keep an exact number of identical pods running. You rarely edit it yourself.</dd>
+  <dt>Label</dt><dd>A key and value attached to an object, such as `app: web`. Labels are how objects find each other.</dd>
+  <dt>Selector</dt><dd>A filter on labels. A Deployment uses one to recognise its own pods.</dd>
+  <dt>Reconciliation</dt><dd>The loop every controller runs: compare what you asked for with what exists, then act to close the gap.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>The front end has to run as two copies, come back by itself when a copy dies, and be easy to scale for a sale. That description is, almost word for word, a Deployment.</p>
 
@@ -50,6 +63,25 @@ spec:
             - name: API_URL
               value: http://api:3000
 ```
+
+<details class="lbl">
+<summary>Line by line: deployment.yaml</summary>
+<dl>
+  <dt>`apiVersion: apps/v1`</dt><dd>Which part of the Kubernetes API defines this kind of object. Deployments live in the `apps` group, version `v1`.</dd>
+  <dt>`kind: Deployment`</dt><dd>The type of object you are describing.</dd>
+  <dt>`metadata:` / `name: web`</dt><dd>The object's name. It must be unique among Deployments in its namespace.</dd>
+  <dt>`labels:` / `app: web` (under `metadata`)</dt><dd>A label on the Deployment itself. It is handy for filtering with `kubectl get -l app=web` and plays no part in finding pods.</dd>
+  <dt>`spec:`</dt><dd>What you want. Everything below describes the desired state.</dd>
+  <dt>`replicas: 2`</dt><dd>Keep two pods running at all times.</dd>
+  <dt>`selector:` / `matchLabels:` / `app: web`</dt><dd>How the Deployment recognises its pods: any pod labelled `app=web` counts as one of its own.</dd>
+  <dt>`template:`</dt><dd>The pattern for each pod. Everything under it is a pod description.</dd>
+  <dt>`labels:` / `app: web` (under `template`)</dt><dd>The label every new pod gets. It has to match the selector, or the API server rejects the manifest.</dd>
+  <dt>`containers:` / `- name: web`</dt><dd>The list of containers in the pod. This pod has one, named `web`.</dd>
+  <dt>`image: shop/web:1.0`</dt><dd>The image to run, with an exact tag so that every pod runs the same version.</dd>
+  <dt>`ports:` / `- containerPort: 8080`</dt><dd>States that the program listens on port 8080. It is information for people and tools and does not open or publish anything.</dd>
+  <dt>`env:` / `- name: API_URL` / `value: http://api:3000`</dt><dd>An environment variable for the container. `api` is the name of a Service, which you meet in the next lesson.</dd>
+</dl>
+</details>
 
 <p>Every Kubernetes object has the same four top-level parts: <code>apiVersion</code>, <code>kind</code>, <code>metadata</code> (name, labels) and <code>spec</code> (what you want). Kubernetes adds a fifth, <code>status</code> (what is currently true).</p>
 
@@ -122,6 +154,35 @@ kubectl get pods -l app=web           # filter by label
 
 <h3>Self-healing</h3>
 <p>Delete a pod and the ReplicaSet's count drops below the desired number, so it creates a replacement within a second. The new pod has a new name and a new IP. You did not restart anything; the control loop closed the gap.</p>
+<p>The diagram plays that loop step by step. Use the buttons to pause it or to step through at your own pace.</p>
+<figure class="anim">
+<div class="anim-stage"><svg viewBox="0 0 760 270" role="img" aria-label="A Deployment declares two replicas. Its ReplicaSet keeps counting the matching pods. When one pod is deleted, the count shows desired 2, current 1, and the ReplicaSet creates a new pod with a new name.">
+<rect class="a-zone" x="8" y="8" width="744" height="254" rx="12"/>
+<text class="a-cap" x="24" y="74">WHAT YOU DECLARED</text>
+<rect class="a-zone inner" x="548" y="40" width="192" height="150" rx="10"/>
+<text class="a-cap" x="564" y="64">WHAT IS RUNNING</text>
+<path class="a-route" data-k="r1" d="M194 135 H295"/>
+<path class="a-route" data-k="r2" d="M465 135 H548"/>
+<text class="a-lbl" data-k="r1" x="244" y="125">reads</text>
+<text class="a-lbl" data-k="r2" x="506" y="125">counts</text>
+<text class="a-badge" data-k="eq" x="380" y="214">desired 2 · current 2</text>
+<text class="a-badge" data-k="ne" x="380" y="214">desired 2 · current 1</text>
+<g class="a-pkt off"><circle class="halo" r="12"/><circle class="core" r="6"/></g>
+<g class="a-node" data-k="want"><rect x="24" y="86" width="170" height="98" rx="8"/><text class="a-t" x="109" y="132">replicas: 2</text><text class="a-s" x="109" y="151">the Deployment</text></g>
+<g class="a-node" data-k="ctl"><rect x="295" y="86" width="170" height="98" rx="8"/><text class="a-t" x="380" y="132">ReplicaSet</text><text class="a-s" x="380" y="151">compare, then act</text></g>
+<g class="a-node" data-k="podA"><rect x="562" y="78" width="164" height="40" rx="8"/><text class="a-m" x="644" y="103">web-j8p7ln5l7t-bbrt5</text></g>
+<g class="a-node" data-k="podB"><rect x="562" y="130" width="164" height="40" rx="8"/><text class="a-m" x="644" y="155">web-j8p7ln5l7t-l4d6g</text></g>
+<g class="a-node" data-k="podC"><rect x="562" y="130" width="164" height="40" rx="8"/><text class="a-m" x="644" y="155">web-j8p7ln5l7t-x2m9k</text></g>
+</svg></div>
+<script type="application/json">[
+  {"on": "want ctl r1 r2", "good": "eq", "off": "ne podC", "text": "<b>Desired equals current.</b> You declared 2 replicas and 2 pods are running. The ReplicaSet counts the pods that match its selector, again and again. The numbers match, so it does nothing."},
+  {"bad": "podB", "off": "eq ne podC", "text": "<b>A pod disappears.</b> It crashes, its node fails, or someone runs <code>kubectl delete pod</code>."},
+  {"on": "ctl r1 r2", "bad": "ne", "off": "eq podB podC", "text": "<b>The ReplicaSet notices.</b> Its next count says: desired 2, current 1."},
+  {"on": "ctl r2 podC", "bad": "ne", "off": "eq podB", "path": [[472, 135], [554, 150]], "text": "<b>It closes the gap.</b> The ReplicaSet creates a replacement from the pod template. It is a new pod with a new name and a new IP address. The old one does not come back."},
+  {"on": "want ctl r1 r2", "good": "eq", "off": "ne podB", "text": "<b>Desired equals current again.</b> Nobody ran a command. This compare-and-act loop is called reconciliation, and every Kubernetes controller works this way."}
+]</script>
+</figure>
+
 
 <div class="callout warn"><span class="title">To stop an application, change the Deployment</span>
 Deleting pods of a Deployment is futile: they come back. Scale it to zero (<code>replicas: 0</code>) or delete the Deployment, which removes its ReplicaSets and pods with it.</div>

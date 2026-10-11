@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Publishing a port</dt><dd>Connecting a port on your machine to a port inside the container with `-p HOST:CONTAINER`. Without it, nothing outside Docker can reach the container.</dd>
+  <dt>Host port and container port</dt><dd>The host port is the one you open in the browser. The container port is the one the program listens on inside the container.</dd>
+  <dt>Environment variable</dt><dd>A named value handed to a process when it starts. It is the usual way to configure a container, much like settings that override `appsettings.json`.</dd>
+  <dt>Detached mode</dt><dd>Running a container in the background with `-d`, so the terminal is free and the output goes to the logs.</dd>
+  <dt>Restart policy</dt><dd>The rule that tells Docker whether to start a container again after it stops: `no`, `on-failure`, `always` or `unless-stopped`.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>The shop's front end is published as the image <code>shop/web</code>. Its documentation is two lines long: <i>"Listens on port 8080. Optional environment variables: <code>PORT</code>, <code>API_URL</code>, <code>BANNER</code>."</i> That is all you need, if you know how to use it.</p>
 

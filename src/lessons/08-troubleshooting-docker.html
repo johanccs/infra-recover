@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Exit code</dt><dd>The number a process returned when it ended. 0 is success, 1 is a general error, and 137 means the process was killed (often for using too much memory).</dd>
+  <dt>OOM (out of memory)</dt><dd>The kernel stops a process that uses more memory than it is allowed. Docker reports it as `OOMKilled` with exit code 137.</dd>
+  <dt>Entrypoint and command</dt><dd>The two image settings that together form the start command of a container. `docker inspect` shows what is really run.</dd>
+  <dt>Restart loop</dt><dd>A container that crashes, is started again by its restart policy, and crashes again. `docker ps` shows `Restarting`.</dd>
+  <dt>Connection refused and timeout</dt><dd>Refused means the machine answered and nothing listens on that port. A timeout means no answer at all, which points to the network or a wrong address.</dd>
+</dl>
+</details>
+
 <h2>The method: four questions, in this order</h2>
 <table>
   <tr><th>#</th><th>Question</th><th>Command</th><th>You learn</th></tr>

@@ -1,4 +1,4 @@
-/* infra-sim — Helm and Argo CD scenarios (lessons 20–25). */
+/* infra-recover — Helm and Argo CD scenarios (lessons 20–25). */
 (function (g) {
   "use strict";
   var S = g.InfraSim, lab = S.lab, K8 = S.k8s, G = S.git, REPO = S.helm.REPO_URL, GIT = G.DEFAULT_URL;

@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pending Pods: Scheduling, Taints and Nodes · infra-sim</title>
+<title>Pending Pods: Scheduling, Taints and Nodes · infra-recover</title>
 <meta name="description" content="A Pending pod is a pod the scheduler could not place. There is no container, no log and no crash, only one event with a sentence that looks cryptic and is in fact a complete explanation. This lesson teaches you to read that sentence.">
 <meta property="og:title" content="Pending Pods: Scheduling, Taints and Nodes">
 <meta property="og:description" content="A Pending pod is a pod the scheduler could not place. There is no container, no log and no crash, only one event with a sentence that looks cryptic and is in fact a complete explanation. This lesson teaches you to read that sentence.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="16" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,18 @@
     <li>Take a node out of service and return it safely.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Pending</dt><dd>A pod that has been accepted by the cluster and is not running yet, usually because no node can take it.</dd>
+  <dt>Scheduler</dt><dd>The control plane component that picks a node for each new pod.</dd>
+  <dt>Taint</dt><dd>A mark on a node that keeps pods away unless they tolerate it.</dd>
+  <dt>Toleration</dt><dd>A setting on a pod that allows it onto nodes with a matching taint. It allows, and does not force.</dd>
+  <dt><code>nodeSelector</code></dt><dd>A setting on a pod that restricts it to nodes carrying certain labels.</dd>
+  <dt>Cordon and drain</dt><dd>Cordon marks a node so no new pods land on it. Drain also moves the existing pods away, for maintenance.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>Two workloads have been Pending for ten minutes, a node is still marked for a maintenance that ended yesterday, and somebody needs to patch <code>worker-1</code> tonight without an outage.</p>
@@ -121,6 +134,16 @@ kubectl taint nodes worker-2 dedicated:NoSchedule-       # remove it</code></pre
       operator: Equal
       value: batch
       effect: NoSchedule</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the scheduling settings</summary>
+<dl>
+  <dt><code>nodeSelector:</code> / <code>disktype: ssd</code></dt><dd>Run this pod only on nodes that carry the label <code>disktype=ssd</code>. If no node has it, the pod stays Pending.</dd>
+  <dt><code>tolerations:</code></dt><dd>Taints this pod is willing to accept.</dd>
+  <dt><code>key: dedicated</code> / <code>operator: Equal</code> / <code>value: batch</code></dt><dd>Matches a taint whose key is <code>dedicated</code> and whose value is exactly <code>batch</code>.</dd>
+  <dt><code>effect: NoSchedule</code></dt><dd>The effect of the taint being tolerated. Together the four lines match the taint <code>dedicated=batch:NoSchedule</code>. The toleration lets the pod onto such a node and does not send it there.</dd>
+</dl>
+</details>
 
 <h2 id="node-maintenance-cordon-and-drain">Node maintenance: cordon and drain</h2>
 
@@ -218,9 +241,11 @@ worker-2   Ready                      &lt;none&gt;          4d    v1.37.0</code>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Storage and Stateful Apps · infra-sim</title>
+<title>Storage and Stateful Apps · infra-recover</title>
 <meta name="description" content="A pod&#x27;s file system dies with the pod, just as a container&#x27;s did in Lesson 5. Kubernetes solves this with three objects that are easy to mix up. This lesson sorts them out and follows the chain that leads from a Pending database pod to a misspelt storage class.">
 <meta property="og:title" content="Storage and Stateful Apps">
 <meta property="og:description" content="A pod&#x27;s file system dies with the pod, just as a container&#x27;s did in Lesson 5. Kubernetes solves this with three objects that are easy to mix up. This lesson sorts them out and follows the chain that leads from a Pending database pod to a misspelt storage class.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="18" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,18 @@
     <li>Trace a Pending pod to its unbound claim and fix it.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>PersistentVolume (PV)</dt><dd>A piece of storage in the cluster, such as a disk. It exists independently of any pod.</dd>
+  <dt>PersistentVolumeClaim (PVC)</dt><dd>A request for storage of a certain size and access mode. A pod uses the claim, and the cluster binds the claim to a volume.</dd>
+  <dt>StorageClass</dt><dd>A recipe the cluster uses to create volumes on demand when a claim asks for one.</dd>
+  <dt>Access mode</dt><dd>How a volume may be mounted. <code>ReadWriteOnce</code> means read-write by a single node at a time.</dd>
+  <dt>StatefulSet</dt><dd>Like a Deployment, for apps that keep data. Each pod gets a fixed name (<code>db-0</code>) and its own volume that follows it.</dd>
+  <dt>Headless Service</dt><dd>A Service without a virtual IP (<code>clusterIP: None</code>). It gives each pod of a StatefulSet its own DNS name.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>The database moves into the cluster. Its pod will be rescheduled during node maintenance and replaced on upgrades, and the orders must be there every time it comes back.</p>
@@ -72,6 +85,17 @@ spec:
       storage: 1Gi
   # storageClassName: standard      # omit to use the cluster&#x27;s default class</code></pre>
 
+<details class="lbl">
+<summary>Line by line: pvc.yaml</summary>
+<dl>
+  <dt><code>kind: PersistentVolumeClaim</code></dt><dd>A request for storage, not the storage itself.</dd>
+  <dt><code>metadata:</code> / <code>name: db-data</code></dt><dd>The name a pod uses to refer to the claim.</dd>
+  <dt><code>accessModes: [ReadWriteOnce]</code></dt><dd>The volume may be mounted read-write by one node at a time, which suits a single database pod.</dd>
+  <dt><code>resources:</code> / <code>requests:</code> / <code>storage: 1Gi</code></dt><dd>Ask for at least one gibibyte.</dd>
+  <dt><code># storageClassName: standard</code></dt><dd>Commented out. Without this line the cluster's default StorageClass creates the volume.</dd>
+</dl>
+</details>
+
 <pre data-label="In the pod template"><code class="language-yaml">spec:
   containers:
     - name: db
@@ -83,6 +107,16 @@ spec:
     - name: data
       persistentVolumeClaim:
         claimName: db-data</code></pre>
+
+<details class="lbl">
+<summary>Line by line: using the claim in a pod</summary>
+<dl>
+  <dt><code>volumeMounts:</code> / <code>- name: data</code></dt><dd>Attach the volume called <code>data</code> to the <code>db</code> container.</dd>
+  <dt><code>mountPath: /var/lib/postgresql/data</code></dt><dd>The folder where PostgreSQL keeps its files. What is written there now lands on the volume.</dd>
+  <dt><code>volumes:</code> / <code>- name: data</code></dt><dd>Declares the volume for the pod. The name links it to the mount above.</dd>
+  <dt><code>persistentVolumeClaim:</code> / <code>claimName: db-data</code></dt><dd>The volume is whatever the claim <code>db-data</code> is bound to. While the claim is unbound, the pod stays Pending.</dd>
+</dl>
+</details>
 
 <pre><code class="language-bash">kubectl get storageclass
 kubectl get pvc
@@ -168,6 +202,20 @@ spec:
           requests:
             storage: 1Gi</code></pre>
 
+<details class="lbl">
+<summary>Line by line: statefulset.yaml</summary>
+<dl>
+  <dt><code>kind: StatefulSet</code></dt><dd>A controller for pods that keep data and need a stable name.</dd>
+  <dt><code>serviceName: db</code></dt><dd>The headless Service that gives each pod its DNS name, such as <code>db-0.db</code>. You create that Service yourself.</dd>
+  <dt><code>replicas: 1</code></dt><dd>One pod, which will be named <code>db-0</code>.</dd>
+  <dt><code>selector:</code> / <code>matchLabels: {app: db}</code></dt><dd>How the StatefulSet recognises its pods. <code>{app: db}</code> is the short, one-line way to write a map.</dd>
+  <dt><code>template:</code></dt><dd>The pod pattern, exactly as in a Deployment.</dd>
+  <dt><code>volumeMounts:</code> / <code>- name: data</code></dt><dd>Mount the volume <code>data</code> at PostgreSQL's data folder. The name refers to the claim template below.</dd>
+  <dt><code>volumeClaimTemplates:</code></dt><dd>A pattern for a PersistentVolumeClaim. The StatefulSet creates one claim per pod from it, named <code>data-db-0</code>, and gives the same claim back to the pod after a restart.</dd>
+  <dt><code>accessModes: [ReadWriteOnce]</code> / <code>storage: 1Gi</code></dt><dd>The same request as in the stand-alone claim: one gibibyte, read-write by one node.</dd>
+</dl>
+</details>
+
 <div class="callout info"><span class="title">Two StatefulSet rules that matter in incidents</span>
 <ul>
 <li><code>volumeClaimTemplates</code> can't be edited on an existing StatefulSet. A change requires deleting and recreating the StatefulSet (its claims and data stay).</li>
@@ -243,9 +291,11 @@ spec:
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Endpoints</dt><dd>The pod addresses behind a Service. An empty list means the selector matches no ready pod.</dd>
+  <dt>Ingress</dt><dd>A set of rules that routes outside HTTP traffic to Services by host name and path.</dd>
+  <dt>Ingress controller</dt><dd>The reverse proxy in the cluster that reads Ingress objects and does the routing. Without one, an Ingress does nothing.</dd>
+  <dt>NetworkPolicy</dt><dd>A rule that says which pods may connect to which. Once any policy selects a pod, everything not allowed is dropped.</dd>
+  <dt>Timeout and connection refused</dt><dd>A timeout means packets vanish, which is typical of a NetworkPolicy. Refused means the pod answered and nothing listens on that port.</dd>
+</dl>
+</details>
+
 <h2>The path of a request</h2>
 
 ```plaintext
@@ -73,6 +84,18 @@ spec:
                 port:
                   number: 80         # the Service's port, not the pod's
 ```
+
+<details class="lbl">
+<summary>Line by line: ingress.yaml</summary>
+<dl>
+  <dt>`apiVersion: networking.k8s.io/v1` / `kind: Ingress`</dt><dd>An Ingress object, from the networking API group.</dd>
+  <dt>`ingressClassName: traefik`</dt><dd>Which ingress controller should act on this object. If no controller has that class, nothing happens.</dd>
+  <dt>`rules:` / `- host: shop.local`</dt><dd>This rule applies to requests whose Host header is `shop.local`.</dd>
+  <dt>`path: /` / `pathType: Prefix`</dt><dd>Match every path that starts with `/`, which is every request.</dd>
+  <dt>`backend:` / `service:` / `name: web`</dt><dd>Send matching requests to the Service `web`. It has to be in the same namespace as the Ingress.</dd>
+  <dt>`port:` / `number: 80`</dt><dd>The port of that Service (its `port`, not the pods' `targetPort`).</dd>
+</dl>
+</details>
 
 <p>An Ingress is only a set of rules. The work is done by an <b>ingress controller</b>: a reverse proxy running in the cluster that watches Ingress objects and configures itself. Without a controller that claims the Ingress's class, the object exists and nothing happens.</p>
 
@@ -132,6 +155,19 @@ spec:
       ports:
         - port: 3000
 ```
+
+<details class="lbl">
+<summary>Line by line: the two policies</summary>
+<dl>
+  <dt>`kind: NetworkPolicy` / `name: default-deny-ingress`</dt><dd>The first policy. Its job is to close everything.</dd>
+  <dt>`podSelector: {}`</dt><dd>An empty selector selects every pod in the namespace.</dd>
+  <dt>`policyTypes: [Ingress]`</dt><dd>The policy is about incoming connections. It lists no `ingress` rules, so nothing is allowed in.</dd>
+  <dt>`---`</dt><dd>Separates two objects in one YAML file.</dd>
+  <dt>`name: allow-api-from-web` / `podSelector:` / `app: api`</dt><dd>The second policy applies to the pods labelled `app=api`. These are the pods being protected.</dd>
+  <dt>`ingress:` / `- from:` / `podSelector:` / `app: web`</dt><dd>Allow connections that come from pods labelled `app=web` in the same namespace.</dd>
+  <dt>`ports:` / `- port: 3000`</dt><dd>And only to port 3000. Everything else stays blocked by the first policy.</dd>
+</dl>
+</details>
 
 ```bash
 kubectl get networkpolicy

@@ -1,4 +1,4 @@
-/* infra-sim — helpers shared by the scenarios (labs) and their tests. */
+/* infra-recover — helpers shared by the scenarios (labs) and their tests. */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util;

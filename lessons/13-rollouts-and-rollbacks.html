@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rollouts and Rollbacks · infra-sim</title>
+<title>Rollouts and Rollbacks · infra-recover</title>
 <meta name="description" content="Releasing a new version without downtime, and getting back quickly when the new version is bad, is the main reason teams adopt Deployments. This lesson shows what happens during a rollout, how to read a stuck one, and how to undo it.">
 <meta property="og:title" content="Rollouts and Rollbacks">
 <meta property="og:description" content="Releasing a new version without downtime, and getting back quickly when the new version is bad, is the main reason teams adopt Deployments. This lesson shows what happens during a rollout, how to read a stuck one, and how to undo it.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="13" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Diagnose <code>ImagePullBackOff</code> during a release.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Rollout</dt><dd>The process of replacing the pods of a Deployment with a new version.</dd>
+  <dt>Rolling update</dt><dd>The default rollout strategy: start a few new pods, wait until they are ready, remove a few old ones, and repeat. The app stays available throughout.</dd>
+  <dt>Revision</dt><dd>A numbered version of a Deployment's pod template. Each change to the template creates a new one.</dd>
+  <dt><code>maxSurge</code> and <code>maxUnavailable</code></dt><dd>The two limits of a rolling update: how many extra pods may exist, and how many may be missing, at any moment.</dd>
+  <dt>Rollback</dt><dd>Going back to an earlier revision, with <code>kubectl rollout undo</code>.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>Three replicas of the front end serve customers. Version 1.1 is ready to ship. Tomorrow there will be a 1.2, and that one will have a bug nobody caught in testing.</p>
@@ -72,6 +84,44 @@ deployment &quot;web&quot; successfully rolled out</code></pre>
   </tbody>
 </table>
 <p>With three replicas that means: at most one extra pod, and never fewer than three available. The decisive rule is that <b>an old pod is only removed after a new pod has become Ready</b>.</p>
+<p>Watch that rule at work. At every step, count the pods that are receiving traffic:</p>
+<figure class="anim">
+<div class="anim-stage"><svg viewBox="0 0 760 340" role="img" aria-label="A Service sends traffic to three pods of the old ReplicaSet. The Deployment starts one pod in a new ReplicaSet, waits until it is Ready, then removes one old pod, and repeats until all three pods run the new version.">
+<rect class="a-zone" x="8" y="8" width="744" height="324" rx="12"/>
+<text class="a-cap" x="420" y="32">OLD REPLICASET</text>
+<text class="a-cap" x="420" y="184">NEW REPLICASET</text>
+<path class="a-route" data-k="t1" d="M164 174 L420 61"/>
+<path class="a-route" data-k="t2" d="M164 174 L420 105"/>
+<path class="a-route" data-k="t3" d="M164 174 L420 149"/>
+<path class="a-route" data-k="t4" d="M164 174 L420 213"/>
+<path class="a-route" data-k="t5" d="M164 174 L420 257"/>
+<path class="a-route" data-k="t6" d="M164 174 L420 301"/>
+<text class="a-badge start" data-k="w1" x="596" y="218">not Ready yet</text>
+<text class="a-badge start" data-k="k1" x="596" y="218">Ready</text>
+<text class="a-badge start" data-k="w2" x="596" y="262">not Ready yet</text>
+<text class="a-badge start" data-k="k2" x="596" y="262">Ready</text>
+<text class="a-badge start" data-k="w3" x="596" y="306">not Ready yet</text>
+<text class="a-badge start" data-k="k3" x="596" y="306">Ready</text>
+<g class="a-pkt off"><circle class="halo" r="12"/><circle class="core" r="6"/></g>
+<g class="a-node" data-k="svc"><rect x="24" y="142" width="140" height="64" rx="8"/><text class="a-t" x="94" y="171">Service</text><text class="a-s" x="94" y="190">web</text></g>
+<g class="a-node" data-k="old1"><rect x="420" y="44" width="160" height="34" rx="8"/><text class="a-t" x="500" y="66">web pod</text></g>
+<g class="a-node" data-k="old2"><rect x="420" y="88" width="160" height="34" rx="8"/><text class="a-t" x="500" y="110">web pod</text></g>
+<g class="a-node" data-k="old3"><rect x="420" y="132" width="160" height="34" rx="8"/><text class="a-t" x="500" y="154">web pod</text></g>
+<g class="a-node" data-k="new1"><rect x="420" y="196" width="160" height="34" rx="8"/><text class="a-t" x="500" y="218">web pod</text></g>
+<g class="a-node" data-k="new2"><rect x="420" y="240" width="160" height="34" rx="8"/><text class="a-t" x="500" y="262">web pod</text></g>
+<g class="a-node" data-k="new3"><rect x="420" y="284" width="160" height="34" rx="8"/><text class="a-t" x="500" y="306">web pod</text></g>
+</svg></div>
+<script type="application/json">[
+  {"on": "svc t1 t2 t3 old1 old2 old3", "off": "new1 new2 new3 t4 t5 t6 w1 k1 w2 k2 w3 k3", "text": "<b>Before.</b> Three pods of the old version are Ready, and the Service sends traffic to all three."},
+  {"on": "svc t1 t2 t3 old1 old2 old3", "off": "new2 new3 t4 t5 t6 k1 w2 k2 w3 k3", "text": "<b>One extra pod starts.</b> The pod template changed, so the Deployment creates a new ReplicaSet and starts one pod in it (<code>maxSurge</code>). It receives no traffic yet.", "bad": "new1 w1"},
+  {"on": "svc t1 t2 t3 t4 old1 old2 old3 new1", "off": "new2 new3 t5 t6 w1 w2 k2 w3 k3", "text": "<b>It becomes Ready.</b> Its readiness probe passes, so the Service adds it to its endpoints.", "good": "k1", "path": [[172, 174], [412, 213]]},
+  {"on": "svc t2 t3 t4 old2 old3 new1", "off": "old1 t1 new2 new3 t5 t6 w1 w2 k2 w3 k3", "text": "<b>Only now is an old pod removed.</b> Three Ready pods are still serving, so the available count never drops below three.", "good": "k1"},
+  {"on": "svc t2 t3 t4 t5 old2 old3 new1 new2", "off": "old1 t1 new3 t6 w1 w2 w3 k3", "text": "<b>Repeat.</b> A second new pod starts, becomes Ready and joins the Service.", "good": "k1 k2", "path": [[172, 174], [412, 257]]},
+  {"on": "svc t3 t4 t5 old3 new1 new2", "off": "old1 old2 t1 t2 t6 w1 w2 k3", "text": "<b>The next old pod is removed</b>, and the third new pod starts.", "bad": "new3 w3", "good": "k1 k2"},
+  {"on": "svc t4 t5 t6 new1 new2 new3", "off": "old1 old2 old3 t1 t2 t3 w1 w2 w3", "text": "<b>Done.</b> All three pods run the new version. The old ReplicaSet stays, scaled to 0, which is what makes <code>kubectl rollout undo</code> possible.", "good": "k1 k2 k3", "path": [[172, 174], [412, 301]]}
+]</script>
+</figure>
+
 
 <div class="callout tip"><span class="title">A stuck rollout is a safe rollout</span>
 If the new version cannot start (bad image tag, crash at startup, failing readiness probe), its first pod never becomes Ready, so no old pod is removed. The release hangs, the old version keeps serving, and customers notice nothing. This protection depends on a meaningful readiness probe (Lesson 14): without one, a pod counts as ready the moment its process starts.</div>
@@ -207,9 +257,11 @@ web-rhrcvrmcl2-pb8kr   0/1     ImagePullBackOff   0          90s</code></pre>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

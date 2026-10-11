@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Troubleshooting Docker: A Method · infra-sim</title>
+<title>Troubleshooting Docker: A Method · infra-recover</title>
 <meta name="description" content="You have now met most of the ways a container can fail, one at a time. Real incidents rarely come one at a time. This lesson turns what you learned into a method you can apply when you don&#x27;t yet know what is wrong.">
 <meta property="og:title" content="Troubleshooting Docker: A Method">
 <meta property="og:description" content="You have now met most of the ways a container can fail, one at a time. Real incidents rarely come one at a time. This lesson turns what you learned into a method you can apply when you don&#x27;t yet know what is wrong.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="8" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Clean up a Docker host safely.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Exit code</dt><dd>The number a process returned when it ended. 0 is success, 1 is a general error, and 137 means the process was killed (often for using too much memory).</dd>
+  <dt>OOM (out of memory)</dt><dd>The kernel stops a process that uses more memory than it is allowed. Docker reports it as <code>OOMKilled</code> with exit code 137.</dd>
+  <dt>Entrypoint and command</dt><dd>The two image settings that together form the start command of a container. <code>docker inspect</code> shows what is really run.</dd>
+  <dt>Restart loop</dt><dd>A container that crashes, is started again by its restart policy, and crashes again. <code>docker ps</code> shows <code>Restarting</code>.</dd>
+  <dt>Connection refused and timeout</dt><dd>Refused means the machine answered and nothing listens on that port. A timeout means no answer at all, which points to the network or a wrong address.</dd>
+</dl>
+</details>
 
 <h2 id="the-method-four-questions-in-this-order">The method: four questions, in this order</h2>
 <table>
@@ -186,9 +198,11 @@ docker system prune         # containers + networks + dangling images + build ca
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

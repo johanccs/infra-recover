@@ -19,6 +19,19 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Cluster</dt><dd>A group of machines that Kubernetes manages as one system.</dd>
+  <dt>Node</dt><dd>One machine (virtual or physical) in the cluster. Worker nodes run your containers.</dd>
+  <dt>Control plane</dt><dd>The components that manage the cluster: the API server, the scheduler, the controllers and the etcd database.</dd>
+  <dt>API server</dt><dd>The front door of the cluster. Every command and every component talks to it and nothing else.</dd>
+  <dt>kubelet</dt><dd>The agent on every node. It starts and stops the containers that the control plane assigns to that node.</dd>
+  <dt>`kubectl`</dt><dd>The command-line tool that sends your requests to the API server.</dd>
+  <dt>Namespace</dt><dd>A named area inside a cluster that keeps one team's or one app's objects apart from the others.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>The shop outgrew a single Docker host. One machine is a single point of failure, and somebody had to notice and react whenever a container died. The team moved to a three-node Kubernetes cluster, and you have just been given access.</p>
 

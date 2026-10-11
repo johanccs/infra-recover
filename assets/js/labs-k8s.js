@@ -1,4 +1,4 @@
-/* infra-sim — Kubernetes scenarios (lessons 9–19). */
+/* infra-recover — Kubernetes scenarios (lessons 9–19). */
 (function (g) {
   "use strict";
   var S = g.InfraSim, lab = S.lab, K8 = S.k8s, dep = S.git.deployment, svc = S.git.service;

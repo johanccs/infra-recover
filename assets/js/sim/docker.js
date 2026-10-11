@@ -1,4 +1,4 @@
-/* infra-sim — simulated Docker Engine and the `docker` CLI (models Docker Engine 29 output). */
+/* infra-recover — simulated Docker Engine and the `docker` CLI (models Docker Engine 29 output). */
 (function (g) {
   "use strict";
   var S = g.InfraSim, U = S.util, CmdError = S.CmdError, NetError = S.NetError;

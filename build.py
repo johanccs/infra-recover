@@ -20,7 +20,7 @@ with four conveniences that this script expands:
   :::lab scenario-id                   interactive scenario (defined in assets/js/labs-*.js)
 
 Run:  python3 build.py
-Output: lessons/NN-slug.html, assets/js/search-index.js, assets/js/infra-sim.js
+Output: lessons/NN-slug.html, assets/js/search-index.js, assets/js/infra-recover.js
 """
 import html
 import json
@@ -37,7 +37,7 @@ PAGE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="{csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} · infra-sim</title>
+<title>{title} · infra-recover</title>
 <meta name="description" content="{description}">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{description}">
@@ -45,6 +45,7 @@ PAGE = """<!DOCTYPE html>
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="{num}" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -61,9 +62,11 @@ PAGE = """<!DOCTYPE html>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>
@@ -71,12 +74,13 @@ PAGE = """<!DOCTYPE html>
 
 REVIEWED = "October 2026"
 CSP = ("default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-       "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; "
+       "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; "
        "object-src 'none'; base-uri 'self'; form-action 'none'")
 HEADING = re.compile(r"<(h[23])((?:\s[^>]*)?)>(.*?)</\1>", re.S)
 
 
 def text_of(fragment: str) -> str:
+    fragment = re.sub(r"<(script|svg)\b.*?</\1>", " ", fragment, flags=re.S)   # diagram data and drawings are not prose
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", fragment))).strip()
 
 
@@ -180,8 +184,8 @@ def bundle():
     for name in SIM_PARTS:
         parts.append(f"\n/* ---- {name} ---- */\n" + (js / name).read_text(encoding="utf-8").rstrip() + "\n")
     out = "".join(parts)
-    (js / "infra-sim.js").write_text(out, encoding="utf-8")
-    print(f"built assets/js/infra-sim.js ({len(out) // 1024} KB)")
+    (js / "infra-recover.js").write_text(out, encoding="utf-8")
+    print(f"built assets/js/infra-recover.js ({len(out) // 1024} KB)")
 
 
 def lab_ids():

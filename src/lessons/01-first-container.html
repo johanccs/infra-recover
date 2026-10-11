@@ -18,6 +18,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Image</dt><dd>A read-only package holding a program and everything it needs to run: files, libraries and a default start command. Close to a published build output plus the runtime it needs.</dd>
+  <dt>Container</dt><dd>A running (or stopped) instance of an image. It is an ordinary process on the machine, isolated so it sees only its own files, network and process list.</dd>
+  <dt>Registry</dt><dd>A server that stores images. Docker Hub is the default one. `docker pull` downloads from it and `docker push` uploads to it.</dd>
+  <dt>Tag</dt><dd>The label after the colon in an image name, as in `nginx:1.29`. It names one version. Without a tag Docker uses `latest`.</dd>
+  <dt>Docker Engine</dt><dd>The background service (daemon) that builds, starts and stops containers. The `docker` command only sends requests to it.</dd>
+  <dt>Container ID</dt><dd>The identifier Docker gives each container. The first few characters, or the container's name, are enough in commands.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>You joined a team whose application "runs in Docker". On your first day somebody says: "just run the web container and check it on port 8080". You have a terminal and no idea what happens when you press Enter. Let's fix that first.</p>
 

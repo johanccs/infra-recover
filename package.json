@@ -1,14 +1,17 @@
 {
-  "name": "infra-sim",
-  "version": "1.0.0",
+  "name": "infra-recover",
+  "version": "1.3.0",
   "private": true,
   "description": "Scenario-based Docker, Kubernetes, Helm and Argo CD course with an in-browser simulator (static site).",
   "scripts": {
+    "start": "node server.js",
     "build": "python3 build.py",
     "validate": "html-validate index.html sandbox.html 404.html \"lessons/*.html\"",
     "test:sim": "node tests/lab-tests.mjs && node tests/lesson-commands.mjs",
     "test:site": "node tests/run-tests.mjs",
-    "test": "node tests/lab-tests.mjs && node tests/lesson-commands.mjs && node tests/run-tests.mjs"
+    "test:backup": "node tests/backup.test.mjs",
+    "test:links": "node tests/links.mjs",
+    "test": "node tests/lab-tests.mjs && node tests/lesson-commands.mjs && node tests/run-tests.mjs && node tests/backup.test.mjs"
   },
   "devDependencies": {
     "axe-core": "4.14.0",

@@ -19,6 +19,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>PersistentVolume (PV)</dt><dd>A piece of storage in the cluster, such as a disk. It exists independently of any pod.</dd>
+  <dt>PersistentVolumeClaim (PVC)</dt><dd>A request for storage of a certain size and access mode. A pod uses the claim, and the cluster binds the claim to a volume.</dd>
+  <dt>StorageClass</dt><dd>A recipe the cluster uses to create volumes on demand when a claim asks for one.</dd>
+  <dt>Access mode</dt><dd>How a volume may be mounted. `ReadWriteOnce` means read-write by a single node at a time.</dd>
+  <dt>StatefulSet</dt><dd>Like a Deployment, for apps that keep data. Each pod gets a fixed name (`db-0`) and its own volume that follows it.</dd>
+  <dt>Headless Service</dt><dd>A Service without a virtual IP (`clusterIP: None`). It gives each pod of a StatefulSet its own DNS name.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>The database moves into the cluster. Its pod will be rescheduled during node maintenance and replaced on upgrades, and the orders must be there every time it comes back.</p>
 
@@ -52,6 +64,17 @@ spec:
   # storageClassName: standard      # omit to use the cluster's default class
 ```
 
+<details class="lbl">
+<summary>Line by line: pvc.yaml</summary>
+<dl>
+  <dt>`kind: PersistentVolumeClaim`</dt><dd>A request for storage, not the storage itself.</dd>
+  <dt>`metadata:` / `name: db-data`</dt><dd>The name a pod uses to refer to the claim.</dd>
+  <dt>`accessModes: [ReadWriteOnce]`</dt><dd>The volume may be mounted read-write by one node at a time, which suits a single database pod.</dd>
+  <dt>`resources:` / `requests:` / `storage: 1Gi`</dt><dd>Ask for at least one gibibyte.</dd>
+  <dt>`# storageClassName: standard`</dt><dd>Commented out. Without this line the cluster's default StorageClass creates the volume.</dd>
+</dl>
+</details>
+
 ```yaml label="In the pod template"
 spec:
   containers:
@@ -65,6 +88,16 @@ spec:
       persistentVolumeClaim:
         claimName: db-data
 ```
+
+<details class="lbl">
+<summary>Line by line: using the claim in a pod</summary>
+<dl>
+  <dt>`volumeMounts:` / `- name: data`</dt><dd>Attach the volume called `data` to the `db` container.</dd>
+  <dt>`mountPath: /var/lib/postgresql/data`</dt><dd>The folder where PostgreSQL keeps its files. What is written there now lands on the volume.</dd>
+  <dt>`volumes:` / `- name: data`</dt><dd>Declares the volume for the pod. The name links it to the mount above.</dd>
+  <dt>`persistentVolumeClaim:` / `claimName: db-data`</dt><dd>The volume is whatever the claim `db-data` is bound to. While the claim is unbound, the pod stays Pending.</dd>
+</dl>
+</details>
 
 ```bash
 kubectl get storageclass
@@ -151,6 +184,20 @@ spec:
           requests:
             storage: 1Gi
 ```
+
+<details class="lbl">
+<summary>Line by line: statefulset.yaml</summary>
+<dl>
+  <dt>`kind: StatefulSet`</dt><dd>A controller for pods that keep data and need a stable name.</dd>
+  <dt>`serviceName: db`</dt><dd>The headless Service that gives each pod its DNS name, such as `db-0.db`. You create that Service yourself.</dd>
+  <dt>`replicas: 1`</dt><dd>One pod, which will be named `db-0`.</dd>
+  <dt>`selector:` / `matchLabels: {app: db}`</dt><dd>How the StatefulSet recognises its pods. `{app: db}` is the short, one-line way to write a map.</dd>
+  <dt>`template:`</dt><dd>The pod pattern, exactly as in a Deployment.</dd>
+  <dt>`volumeMounts:` / `- name: data`</dt><dd>Mount the volume `data` at PostgreSQL's data folder. The name refers to the claim template below.</dd>
+  <dt>`volumeClaimTemplates:`</dt><dd>A pattern for a PersistentVolumeClaim. The StatefulSet creates one claim per pod from it, named `data-db-0`, and gives the same claim back to the pod after a restart.</dd>
+  <dt>`accessModes: [ReadWriteOnce]` / `storage: 1Gi`</dt><dd>The same request as in the stand-alone claim: one gibibyte, read-write by one node.</dd>
+</dl>
+</details>
 
 <div class="callout info"><span class="title">Two StatefulSet rules that matter in incidents</span>
 <ul>

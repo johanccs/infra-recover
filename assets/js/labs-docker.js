@@ -1,4 +1,4 @@
-/* infra-sim — Docker and Docker Compose scenarios (lessons 1–8). */
+/* infra-recover — Docker and Docker Compose scenarios (lessons 1–8). */
 (function (g) {
   "use strict";
   var S = g.InfraSim, lab = S.lab;

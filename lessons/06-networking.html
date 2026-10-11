@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Container Networking and DNS · infra-sim</title>
+<title>Container Networking and DNS · infra-recover</title>
 <meta name="description" content="Real applications are several containers that talk to each other. This lesson shows how containers find each other by name, why that sometimes fails, and how to tell a naming problem from a connection problem.">
 <meta property="og:title" content="Container Networking and DNS">
 <meta property="og:description" content="Real applications are several containers that talk to each other. This lesson shows how containers find each other by name, why that sometimes fails, and how to tell a naming problem from a connection problem.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="6" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Inspect networks and attach running containers to them.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Bridge network</dt><dd>A private virtual network on your machine. Containers attached to the same one can talk to each other.</dd>
+  <dt>User-defined network</dt><dd>A bridge network you create yourself with <code>docker network create</code>. On it, containers can find each other by name. The default bridge does not offer that.</dd>
+  <dt>DNS (name resolution)</dt><dd>Turning a name such as <code>api</code> into an IP address. Docker runs a small DNS server for user-defined networks.</dd>
+  <dt><code>localhost</code> inside a container</dt><dd>The container itself, not your machine and not another container. A common cause of "connection refused".</dd>
+  <dt>Published port</dt><dd>A host port forwarded to a container port with <code>-p</code>. It is needed only for traffic from outside Docker, not between containers on one network.</dd>
+</dl>
+</details>
 
 <h2 id="the-situation">The situation</h2>
 <p>The shop has three parts: a web front end, an API, and a PostgreSQL database. The API has to reach the database; the front end has to reach the API; customers only ever reach the front end.</p>
@@ -178,9 +190,11 @@ docker network disconnect bridge api</code></pre>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

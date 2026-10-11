@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Writing and Debugging Charts · infra-sim</title>
+<title>Writing and Debugging Charts · infra-recover</title>
 <meta name="description" content="Sooner or later a chart fails to render, and the error mentions a line number, an angle-bracketed expression and &quot;nil pointer&quot;. This lesson opens the chart up: how templates turn values into YAML, and how to find out which of the two stages went wrong.">
 <meta property="og:title" content="Writing and Debugging Charts">
 <meta property="og:description" content="Sooner or later a chart fails to render, and the error mentions a line number, an angle-bracketed expression and &quot;nil pointer&quot;. This lesson opens the chart up: how templates turn values into YAML, and how to find out which of the two stages went wrong.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="21" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -41,6 +42,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Template</dt><dd>A manifest with placeholders in double braces. Helm fills them in from the values to produce plain YAML.</dd>
+  <dt>Built-in object</dt><dd>Data Helm hands to every template: <code>.Values</code>, <code>.Release</code>, <code>.Chart</code> and others.</dd>
+  <dt>Pipeline</dt><dd>Passing a value through functions with <code>|</code>, as in <code>{{ .Values.name | quote }}</code>.</dd>
+  <dt>Helper</dt><dd>A named snippet in <code>_helpers.tpl</code> that templates reuse with <code>include</code>.</dd>
+  <dt><code>helm lint</code></dt><dd>Checks a chart for template and YAML problems without installing it.</dd>
+  <dt><code>helm template</code></dt><dd>Renders a chart on your machine and prints the manifests. Nothing is sent to the cluster.</dd>
+</dl>
+</details>
+
 <h2 id="the-layout-of-a-chart">The layout of a chart</h2>
 
 <pre><code class="language-plaintext">web/
@@ -69,6 +82,18 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           image: &quot;{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}&quot;</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the template</summary>
+<dl>
+  <dt><code>name: {{ .Release.Name }}</code></dt><dd>The name you gave the release at <code>helm install</code>. Installing as <code>web</code> produces <code>name: web</code>.</dd>
+  <dt><code>replicas: {{ .Values.replicaCount }}</code></dt><dd>The value <code>replicaCount</code> from <code>values.yaml</code>, or from your override.</dd>
+  <dt><code>- name: {{ .Chart.Name }}</code></dt><dd>The chart's name from <code>Chart.yaml</code>, used as the container name.</dd>
+  <dt><code>{{ .Values.image.repository }}</code></dt><dd>The dots walk down the values: <code>image</code>, then <code>repository</code>.</dd>
+  <dt><code>{{ .Values.image.tag | default .Chart.AppVersion }}</code></dt><dd>Use <code>image.tag</code> if it is set. If it is empty, use the chart's <code>appVersion</code>. The <code>|</code> passes the value on the left into the function on the right.</dd>
+  <dt>The quotes around the whole <code>image:</code> value</dt><dd>They belong to the YAML, not to Helm. They keep the rendered text a string.</dd>
+</dl>
+</details>
 
 <table>
   <thead><tr><th scope="col">Object</th><th scope="col">Contains</th></tr></thead>
@@ -105,6 +130,18 @@ kind: Ingress
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the conditional and the loop</summary>
+<dl>
+  <dt><code>{{- if .Values.ingress.enabled }}</code> … <code>{{- end }}</code></dt><dd>Everything between the two lines is produced only when the value <code>ingress.enabled</code> is true. Otherwise the file renders to nothing and no Ingress is created.</dd>
+  <dt>The dash in <code>{{-</code></dt><dd>Removes the whitespace and line break in front of the action, so the control line leaves no empty line in the output.</dd>
+  <dt><code>{{- range $key, $value := .Values.env }}</code></dt><dd>Loop over the map <code>env</code>. On each pass, <code>$key</code> holds the name and <code>$value</code> holds the value.</dd>
+  <dt><code>- name: {{ $key }}</code></dt><dd>One list item per entry, with the key as the variable's name.</dd>
+  <dt><code>value: {{ $value | quote }}</code></dt><dd>The value, wrapped in double quotes by the <code>quote</code> function. Environment values must be strings, and without quotes <code>8080</code> or <code>true</code> would not be.</dd>
+  <dt><code>{{- end }}</code></dt><dd>Closes the loop.</dd>
+</dl>
+</details>
 
 <h3 id="s-4-whitespace">4. Whitespace</h3>
 <p>A template action leaves its own line behind as an empty line. A dash inside the braces removes whitespace on that side: <code>{{-</code> eats everything before the action up to the previous text, including the line break; <code>-}}</code> does the same after it. That is why control lines are written <code>{{- if … }}</code> and <code>{{- end }}</code>.</p>
@@ -252,9 +289,11 @@ kind: Ingress
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

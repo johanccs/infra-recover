@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Services and DNS · infra-sim</title>
+<title>Services and DNS · infra-recover</title>
 <meta name="description" content="Pods come and go, and each new one has a new IP address. A Service gives a changing group of pods one stable name and address. Understanding how a Service finds its pods is what lets you fix it when it finds none.">
 <meta property="og:title" content="Services and DNS">
 <meta property="og:description" content="Pods come and go, and each new one has a new IP address. A Service gives a changing group of pods one stable name and address. Understanding how a Service finds its pods is what lets you fix it when it finds none.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="11" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -41,6 +42,18 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Service</dt><dd>A stable name and address in front of a changing set of pods. Pods come and go, the Service stays.</dd>
+  <dt>ClusterIP</dt><dd>The default Service type, and also the name of its virtual IP address. It is reachable only from inside the cluster.</dd>
+  <dt>NodePort</dt><dd>A Service type that also opens the same port on every node, so traffic from outside the cluster can get in.</dd>
+  <dt>Selector</dt><dd>The label filter that decides which pods a Service sends traffic to.</dd>
+  <dt>Endpoints</dt><dd>The list of pod IP addresses currently behind a Service. Only ready pods that match the selector are on it.</dd>
+  <dt>Cluster DNS</dt><dd>The DNS server inside the cluster (CoreDNS). It lets a pod reach a Service by name, for example <code>api</code> or <code>api.shop.svc.cluster.local</code>.</dd>
+</dl>
+</details>
+
 <h2 id="the-situation">The situation</h2>
 <p>The front end must call the API. There are three API pods, their IP addresses change with every rollout, and the front end must neither know nor care. It should simply call <code>http://api:3000</code>.</p>
 
@@ -58,8 +71,49 @@ spec:
     - port: 3000        # the port of the Service itself
       targetPort: 3000  # the port on the pods where traffic is delivered</code></pre>
 
+<details class="lbl">
+<summary>Line by line: service.yaml</summary>
+<dl>
+  <dt><code>apiVersion: v1</code></dt><dd>Services belong to the core API group, which is written as just <code>v1</code>.</dd>
+  <dt><code>kind: Service</code></dt><dd>The type of object.</dd>
+  <dt><code>metadata:</code> / <code>name: api</code></dt><dd>The Service's name. It becomes the DNS name other pods use: <code>api</code>.</dd>
+  <dt><code>selector:</code> / <code>app: api</code></dt><dd>Send traffic to every ready pod labelled <code>app=api</code>. If no pod carries that label, the Service has no endpoints and connections fail.</dd>
+  <dt><code>port: 3000</code></dt><dd>The port the Service listens on. Clients connect to <code>api:3000</code>.</dd>
+  <dt><code>targetPort: 3000</code></dt><dd>The port on the pod that receives the traffic. It has to be the port the program really listens on. The two numbers may differ.</dd>
+</dl>
+</details>
+
 <pre data-label="How a request travels"><code class="language-plaintext"> web pod ──► api:3000 ──DNS──► 10.96.0.27:3000 ──► one of the ready pods matching app=api
              (name)           (ClusterIP)          10.244.1.5:3000   10.244.2.4:3000</code></pre>
+
+<p>The same route as an animation, including what happens when one of the pods is replaced:</p>
+<figure class="anim">
+<div class="anim-stage"><svg viewBox="0 0 760 270" role="img" aria-label="A web pod calls the Service named api. The Service forwards each connection to one of the ready pods labelled app api. When a pod is replaced, the new pod only receives traffic once it is Ready.">
+<rect class="a-zone" x="8" y="8" width="744" height="254" rx="12"/>
+<path class="a-route" data-k="r0" d="M174 135 H290"/>
+<path class="a-route" data-k="r1" d="M460 135 L580 82"/>
+<path class="a-route" data-k="r2" d="M460 135 L580 188"/>
+<text class="a-lbl" x="375" y="204">selects pods by label</text>
+<text class="a-lbl" x="375" y="220"><tspan class="h">app: api</tspan></text>
+<text class="a-lbl" data-k="ep2" x="375" y="76">endpoints: 2</text>
+<text class="a-lbl" data-k="ep1" x="375" y="76">endpoints: 1</text>
+<text class="a-badge" data-k="nr" x="655" y="134">not Ready yet</text>
+<g class="a-pkt off"><circle class="halo" r="12"/><circle class="core" r="6"/></g>
+<g class="a-node" data-k="caller"><rect x="24" y="103" width="150" height="64" rx="8"/><text class="a-t" x="99" y="132">web pod</text><text class="a-s" x="99" y="151">calls api:3000</text></g>
+<g class="a-node" data-k="svc"><rect x="290" y="95" width="170" height="80" rx="8"/><text class="a-t" x="375" y="132">Service api</text><text class="a-s" x="375" y="151">10.96.0.27:3000</text></g>
+<g class="a-node" data-k="pod1"><rect x="580" y="54" width="150" height="56" rx="8"/><text class="a-t" x="655" y="79">api pod</text><text class="a-s" x="655" y="98">10.244.1.5:3000</text></g>
+<g class="a-node" data-k="pod1b"><rect x="580" y="54" width="150" height="56" rx="8"/><text class="a-t" x="655" y="79">api pod</text><text class="a-s" x="655" y="98">10.244.1.9:3000</text></g>
+<g class="a-node" data-k="pod2"><rect x="580" y="160" width="150" height="56" rx="8"/><text class="a-t" x="655" y="185">api pod</text><text class="a-s" x="655" y="204">10.244.2.4:3000</text></g>
+</svg></div>
+<script type="application/json">[
+  {"on": "caller svc r0", "off": "pod1b nr ep1", "path": [[182, 135], [282, 135]], "text": "<b>One stable name.</b> The web pod calls <code>http://api:3000</code>. Cluster DNS turns the name into the Service's ClusterIP. The caller does not know which pods exist."},
+  {"on": "svc r1 pod1", "off": "pod1b nr ep1", "path": [[282, 135], [375, 135], [460, 135], [572, 86]], "text": "<b>The Service picks an endpoint.</b> Its endpoints are the ready pods labelled <code>app: api</code>. The connection is forwarded to one of them, on the <code>targetPort</code>."},
+  {"on": "caller svc r0 r2 pod2", "off": "pod1b nr ep1", "path": [[182, 135], [375, 135], [460, 135], [572, 184]], "text": "<b>The next connection</b> may go to the other pod. The Service spreads connections over all of its endpoints."},
+  {"on": "caller svc r0 r2 pod2", "bad": "pod1b nr", "off": "pod1 ep2", "path": [[182, 135], [375, 135], [460, 135], [572, 184]], "text": "<b>A pod is replaced.</b> The new pod has a new IP address and is not Ready yet, so it is not an endpoint. Everything goes to the pod that is."},
+  {"on": "caller svc r0 r1 pod1b", "off": "pod1 nr ep1", "path": [[182, 135], [375, 135], [460, 135], [572, 86]], "text": "<b>Ready again.</b> Once the new pod is Ready it is added to the endpoints. The caller never noticed: the name <code>api</code> and the ClusterIP did not change."}
+]</script>
+</figure>
+
 
 <h3 id="endpoints-the-service-s-actual-targets">Endpoints: the Service's actual targets</h3>
 <p>For every Service, Kubernetes maintains a list of the pod IPs that currently match the selector <em>and</em> are ready. That list is the Service's <b>endpoints</b>, and it is the first thing to look at when a Service misbehaves.</p>
@@ -204,9 +258,11 @@ ClusterIPs and pod IPs only exist inside the cluster's network. From your workst
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

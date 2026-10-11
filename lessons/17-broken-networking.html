@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Broken Networking: Services, Ingress, Policies · infra-sim</title>
+<title>Broken Networking: Services, Ingress, Policies · infra-recover</title>
 <meta name="description" content="A request crosses several hops between a user and a container, and any of them can be misconfigured while every pod reports Running. This lesson gives you a checklist that walks the path hop by hop, and adds the two objects at its edges: Ingress and NetworkPolicy.">
 <meta property="og:title" content="Broken Networking: Services, Ingress, Policies">
 <meta property="og:description" content="A request crosses several hops between a user and a container, and any of them can be misconfigured while every pod reports Running. This lesson gives you a checklist that walks the path hop by hop, and adds the two objects at its edges: Ingress and NetworkPolicy.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="17" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -40,6 +41,17 @@
     <li>Tell "refused" from "timed out" and say which layer each points to.</li>
   </ul>
 </div>
+
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Endpoints</dt><dd>The pod addresses behind a Service. An empty list means the selector matches no ready pod.</dd>
+  <dt>Ingress</dt><dd>A set of rules that routes outside HTTP traffic to Services by host name and path.</dd>
+  <dt>Ingress controller</dt><dd>The reverse proxy in the cluster that reads Ingress objects and does the routing. Without one, an Ingress does nothing.</dd>
+  <dt>NetworkPolicy</dt><dd>A rule that says which pods may connect to which. Once any policy selects a pod, everything not allowed is dropped.</dd>
+  <dt>Timeout and connection refused</dt><dd>A timeout means packets vanish, which is typical of a NetworkPolicy. Refused means the pod answered and nothing listens on that port.</dd>
+</dl>
+</details>
 
 <h2 id="the-path-of-a-request">The path of a request</h2>
 
@@ -96,6 +108,18 @@ spec:
                 port:
                   number: 80         # the Service&#x27;s port, not the pod&#x27;s</code></pre>
 
+<details class="lbl">
+<summary>Line by line: ingress.yaml</summary>
+<dl>
+  <dt><code>apiVersion: networking.k8s.io/v1</code> / <code>kind: Ingress</code></dt><dd>An Ingress object, from the networking API group.</dd>
+  <dt><code>ingressClassName: traefik</code></dt><dd>Which ingress controller should act on this object. If no controller has that class, nothing happens.</dd>
+  <dt><code>rules:</code> / <code>- host: shop.local</code></dt><dd>This rule applies to requests whose Host header is <code>shop.local</code>.</dd>
+  <dt><code>path: /</code> / <code>pathType: Prefix</code></dt><dd>Match every path that starts with <code>/</code>, which is every request.</dd>
+  <dt><code>backend:</code> / <code>service:</code> / <code>name: web</code></dt><dd>Send matching requests to the Service <code>web</code>. It has to be in the same namespace as the Ingress.</dd>
+  <dt><code>port:</code> / <code>number: 80</code></dt><dd>The port of that Service (its <code>port</code>, not the pods' <code>targetPort</code>).</dd>
+</dl>
+</details>
+
 <p>An Ingress is only a set of rules. The work is done by an <b>ingress controller</b>: a reverse proxy running in the cluster that watches Ingress objects and configures itself. Without a controller that claims the Ingress's class, the object exists and nothing happens.</p>
 
 <pre><code class="language-bash">kubectl get ingressclass
@@ -150,6 +174,19 @@ spec:
               app: web         # only pods with this label may connect
       ports:
         - port: 3000</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the two policies</summary>
+<dl>
+  <dt><code>kind: NetworkPolicy</code> / <code>name: default-deny-ingress</code></dt><dd>The first policy. Its job is to close everything.</dd>
+  <dt><code>podSelector: {}</code></dt><dd>An empty selector selects every pod in the namespace.</dd>
+  <dt><code>policyTypes: [Ingress]</code></dt><dd>The policy is about incoming connections. It lists no <code>ingress</code> rules, so nothing is allowed in.</dd>
+  <dt><code>---</code></dt><dd>Separates two objects in one YAML file.</dd>
+  <dt><code>name: allow-api-from-web</code> / <code>podSelector:</code> / <code>app: api</code></dt><dd>The second policy applies to the pods labelled <code>app=api</code>. These are the pods being protected.</dd>
+  <dt><code>ingress:</code> / <code>- from:</code> / <code>podSelector:</code> / <code>app: web</code></dt><dd>Allow connections that come from pods labelled <code>app=web</code> in the same namespace.</dd>
+  <dt><code>ports:</code> / <code>- port: 3000</code></dt><dd>And only to port 3000. Everything else stays blocked by the first policy.</dd>
+</dl>
+</details>
 
 <pre><code class="language-bash">kubectl get networkpolicy
 kubectl describe networkpolicy allow-api-from-web
@@ -235,9 +272,11 @@ kubectl get pods --show-labels       # do the labels in &quot;from&quot; match r
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

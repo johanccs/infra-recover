@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sync Policies, Drift and Rolling Back with Git · infra-sim</title>
+<title>Sync Policies, Drift and Rolling Back with Git · infra-recover</title>
 <meta name="description" content="With manual sync, Argo CD is a reporting tool. Turn on automated sync, pruning and self-healing, and git becomes the only way to change production. That is powerful, and it changes how you fix things at three in the morning.">
 <meta property="og:title" content="Sync Policies, Drift and Rolling Back with Git">
 <meta property="og:description" content="With manual sync, Argo CD is a reporting tool. Turn on automated sync, pruning and self-healing, and git becomes the only way to change production. That is powerful, and it changes how you fix things at three in the morning.">
@@ -12,6 +12,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/course.css">
 <script src="../assets/js/theme-init.js"></script>
+<script src="../assets/js/backup.js"></script>
 </head>
 <body data-lesson="24" data-root="../">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -41,6 +42,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Automated sync</dt><dd>A sync policy that makes Argo CD apply every new commit by itself, without someone pressing Sync.</dd>
+  <dt>Drift</dt><dd>A difference between the cluster and git that was caused by a change made directly in the cluster.</dd>
+  <dt>Self-heal</dt><dd>A setting that makes Argo CD undo drift by applying git again.</dd>
+  <dt>Prune</dt><dd>A setting that makes Argo CD delete objects from the cluster once they are removed from git.</dd>
+  <dt><code>git revert</code></dt><dd>A git command that adds a new commit undoing an earlier one. In GitOps this is how you roll back.</dd>
+</dl>
+</details>
+
 <h2 id="the-situation">The situation</h2>
 <p>The shop is managed by Argo CD. The team wants deployments to happen when a pull request is merged, wants deleted manifests to disappear from the cluster, and wants to stop finding surprises left behind by late-night kubectl sessions.</p>
 
@@ -64,6 +76,16 @@ argocd app get shop        # Sync Policy: Automated (Prune)</code></pre>
       selfHeal: true
     syncOptions:
       - CreateNamespace=true</code></pre>
+
+<details class="lbl">
+<summary>Line by line: the sync policy</summary>
+<dl>
+  <dt><code>syncPolicy:</code> / <code>automated:</code></dt><dd>Having this key at all switches on automated sync: Argo CD applies each new commit by itself.</dd>
+  <dt><code>prune: true</code></dt><dd>Also delete objects from the cluster once their file is removed from git.</dd>
+  <dt><code>selfHeal: true</code></dt><dd>Also undo changes made directly in the cluster, by applying git again.</dd>
+  <dt><code>syncOptions:</code> / <code>- CreateNamespace=true</code></dt><dd>Unchanged from before: create the target namespace if it is missing.</dd>
+</dl>
+</details>
 
 <div class="callout warn"><span class="title">Prune deletes</span>
 With prune enabled, deleting a file from the repository (or moving it outside the application's path, or a rendering change that drops a resource) deletes the object from the cluster, including a StatefulSet or a Namespace. Review deletions in pull requests as carefully as additions. For objects that must never be pruned there is the annotation <code>argocd.argoproj.io/sync-options: Prune=false</code>.</div>
@@ -109,6 +131,37 @@ argocd app diff shop</code></pre>
   <tr><td>Automated with self-heal</td><td>After a few seconds Argo CD re-applies git. The Deployment is back at 3.</td></tr>
   </tbody>
 </table>
+<p>The animation shows both directions: a manual change that self-heal undoes, then a commit that Argo CD rolls out.</p>
+<figure class="anim">
+<div class="anim-stage"><svg viewBox="0 0 760 290" role="img" aria-label="Argo CD runs in the cluster and compares it with a git repository. When someone scales the Deployment by hand, the application is OutOfSync and self-heal re-applies git. When a commit changes the replica count, Argo CD applies it to the cluster.">
+<rect class="a-zone" x="8" y="8" width="744" height="274" rx="12"/>
+<rect class="a-zone inner" x="270" y="30" width="466" height="236" rx="10"/>
+<text class="a-cap" x="288" y="54">KUBERNETES CLUSTER</text>
+<path class="a-route" data-k="g" d="M194 142 H292"/>
+<path class="a-route" data-k="a" d="M442 142 H560"/>
+<text class="a-lbl" data-k="g" x="243" y="132">reads</text>
+<text class="a-lbl" data-k="a" x="501" y="132">applies</text>
+<text class="a-lbl" x="109" y="204">apps/web/deployment.yaml</text>
+<text class="a-badge" data-k="synced" x="367" y="206">Synced</text>
+<text class="a-badge" data-k="oos" x="367" y="206">OutOfSync</text>
+<g class="a-pkt off"><circle class="halo" r="12"/><circle class="core" r="6"/></g>
+<g class="a-node" data-k="git"><rect x="24" y="100" width="170" height="84" rx="8"/><text class="a-t" x="109" y="134">Git repository</text><text class="a-s" data-k="g3" x="109" y="156">replicas: 3</text><text class="a-s" data-k="g4" x="109" y="156">replicas: 4</text></g>
+<g class="a-node" data-k="argo"><rect x="292" y="100" width="150" height="84" rx="8"/><text class="a-t" x="367" y="139">Argo CD</text><text class="a-s" x="367" y="158">compares</text></g>
+<g class="a-node" data-k="p1"><rect x="560" y="84" width="150" height="34" rx="8"/><text class="a-t" x="635" y="106">web pod</text></g>
+<g class="a-node" data-k="p2"><rect x="560" y="126" width="150" height="34" rx="8"/><text class="a-t" x="635" y="148">web pod</text></g>
+<g class="a-node" data-k="p3"><rect x="560" y="168" width="150" height="34" rx="8"/><text class="a-t" x="635" y="190">web pod</text></g>
+<g class="a-node" data-k="p4"><rect x="560" y="210" width="150" height="34" rx="8"/><text class="a-t" x="635" y="232">web pod</text></g>
+</svg></div>
+<script type="application/json">[
+  {"on": "git argo g a", "good": "synced", "off": "g4 oos p4", "text": "<b>Synced.</b> Git says 3 replicas and the cluster runs 3. Argo CD runs inside the cluster and keeps comparing the two."},
+  {"bad": "oos", "off": "g4 synced p2 p3 p4", "text": "<b>Drift.</b> Someone runs <code>kubectl scale deployment web --replicas=1</code>. Git still says 3, so the application is now OutOfSync."},
+  {"on": "git argo g", "bad": "oos", "off": "g4 synced p2 p3 p4", "path": [[284, 142], [202, 142], [284, 142]], "text": "<b>Argo CD compares.</b> The difference did not come from a commit. With manual sync, or automated sync without self-heal, it stays like this until someone syncs."},
+  {"on": "argo a p2 p3", "good": "synced", "off": "g4 oos p4", "path": [[450, 142], [552, 164]], "text": "<b>Self-heal.</b> With <code>selfHeal: true</code>, Argo CD re-applies git within seconds. The Deployment is back at 3, and the hand-made change is gone."},
+  {"on": "git", "bad": "oos", "off": "g3 synced p4", "text": "<b>The supported way: a commit.</b> You change <code>replicas</code> to 4 in git and push. Nothing has touched the cluster yet."},
+  {"on": "git argo g a p4", "good": "synced", "off": "g3 oos", "path": [[202, 142], [284, 142], [450, 142], [552, 227]], "text": "<b>Automated sync.</b> Argo CD sees the new commit and applies it. A fourth pod starts, and the status returns to Synced. To change production, change git."}
+]</script>
+</figure>
+
 
 <h3 id="outofsync-which-side-moved">OutOfSync: which side moved?</h3>
 <table>
@@ -214,9 +267,11 @@ If you truly must change the cluster by hand during an incident on a self-healin
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="../assets/js/infra-sim.js"></script>
+<script src="../assets/js/infra-recover.js"></script>
 <script src="../assets/js/course.js"></script>
 <script src="../assets/js/terminal.js"></script>
+<script src="../assets/js/anim.js"></script>
+<script src="../assets/js/notes.js"></script>
 <script src="../assets/js/ai-assistant.js"></script>
 </body>
 </html>

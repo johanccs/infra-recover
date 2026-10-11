@@ -19,6 +19,17 @@
   </ul>
 </div>
 
+<details class="glossary">
+<summary>Words used in this lesson</summary>
+<dl>
+  <dt>Writable layer</dt><dd>The thin layer each container gets on top of its image. Everything the container writes lands there, and it is deleted with the container.</dd>
+  <dt>Volume</dt><dd>Storage that Docker manages outside any container. It survives when the container is removed and can be attached to a new one.</dd>
+  <dt>Named volume</dt><dd>A volume you gave a name, such as `dbdata`, so you can find and reuse it.</dd>
+  <dt>Bind mount</dt><dd>A folder or file from your machine made visible inside the container at a path you choose. Changes show up on both sides at once.</dd>
+  <dt>Mount path</dt><dd>The path inside the container where a volume or bind mount appears. It hides whatever the image had at that path.</dd>
+</dl>
+</details>
+
 <h2>The situation</h2>
 <p>The shop stores its orders in PostgreSQL, running in a container. Every deployment replaces that container with a new one. The orders have to still be there afterwards.</p>
 

@@ -1,4 +1,4 @@
-/* infra-sim — navigation, progress, quizzes */
+/* infra-recover — navigation, progress, quizzes */
 (function () {
   "use strict";
 
@@ -51,10 +51,12 @@
     { id: 25, level: 6, slug: "25-troubleshooting-argocd", title: "Troubleshooting Argo CD and the Capstone",    summary: "Comparison, sync and health errors; launch day." }
   ];
 
-  var VERSION = "1.0.0";   // bump on every release; keep package.json in sync
+  var VERSION = "1.3.0";   // bump on every release; keep package.json in sync
 
   var STORE_KEY = "infrasim.completed.v1";
   var THEME_KEY = "infrasim.theme";
+  var FONT_KEY = "infrasim.font";
+  var FONT_MIN = 80, FONT_MAX = 160, FONT_STEP = 10;
 
   function load(key, fallback) {
     try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -86,36 +88,72 @@
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
-  /* ---------- Theme ---------- */
-  var savedTheme = load(THEME_KEY, null);
-  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
-  function currentTheme() {
+  /* ---------- Theme: Auto (follow the OS), Light or Dark ---------- */
+  var THEMES = ["auto", "light", "dark"];
+  var THEME_LABEL = { auto: "◐ Auto", light: "☀ Light", dark: "☾ Dark" };
+  function themeMode() {
     var t = document.documentElement.getAttribute("data-theme");
-    if (t) return t;
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return t === "light" || t === "dark" ? t : "auto";
   }
+  function setTheme(mode) {
+    if (mode === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    save(THEME_KEY, mode);
+  }
+  var savedTheme = load(THEME_KEY, null);
+  if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+
+  /* ---------- Text size ---------- */
+  function clampFont(n) { return Math.min(FONT_MAX, Math.max(FONT_MIN, Math.round(n / FONT_STEP) * FONT_STEP)); }
+  var fontSize = clampFont(Number(load(FONT_KEY, 100)) || 100);
+  function applyFont() {
+    if (fontSize === 100) document.documentElement.style.removeProperty("--font-zoom");
+    else document.documentElement.style.setProperty("--font-zoom", String(fontSize / 100));
+  }
+  applyFont();
 
   /* ---------- Top bar ---------- */
   function buildTopbar() {
     var bar = el("header", { "class": "topbar" });
     bar.innerHTML =
       '<button type="button" class="icon-btn" id="menu-btn" aria-label="Toggle lesson menu">☰</button>' +
-      '<a class="brand" href="' + root + 'index.html"><span class="logo">&gt;_</span><span>infra-sim</span></a>' +
+      '<a class="brand" href="' + root + 'index.html"><span class="logo">&gt;_</span><span>infra-recover</span></a>' +
       '<span class="version" title="Course version">v' + VERSION + '</span>' +
       '<span class="spacer"></span>' +
       '<span class="progress-pill" id="progress-pill"></span>' +
-      '<button type="button" class="icon-btn" id="theme-btn" aria-label="Toggle dark mode"></button>';
+      '<span class="bk-state" id="backup-state" hidden></span>' +
+      '<span class="font-ctl" role="group" aria-label="Text size">' +
+        '<button type="button" class="icon-btn" id="font-down" aria-label="Smaller text" title="Smaller text">A−</button>' +
+        '<button type="button" class="icon-btn" id="font-reset" title="Reset the text size"></button>' +
+        '<button type="button" class="icon-btn" id="font-up" aria-label="Larger text" title="Larger text">A+</button>' +
+      '</span>' +
+      '<button type="button" class="icon-btn" id="theme-btn"></button>';
     var skip = body.querySelector(".skip-link");      // keep the skip link as the first focusable element
     body.insertBefore(bar, skip ? skip.nextSibling : body.firstChild);
     var themeBtn = bar.querySelector("#theme-btn");
-    function paint() { themeBtn.textContent = currentTheme() === "dark" ? "☀ Light" : "☾ Dark"; }
+    function paint() {
+      var mode = themeMode(), next = THEMES[(THEMES.indexOf(mode) + 1) % THEMES.length];
+      themeBtn.textContent = THEME_LABEL[mode];
+      themeBtn.setAttribute("aria-label", "Theme: " + mode + ". Switch to " + next + ".");
+      themeBtn.title = mode === "auto" ? "Theme: follows your system setting" : "Theme: always " + mode;
+    }
     paint();
     themeBtn.addEventListener("click", function () {
-      var next = currentTheme() === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      save(THEME_KEY, next);
+      setTheme(THEMES[(THEMES.indexOf(themeMode()) + 1) % THEMES.length]);
       paint();
     });
+    var fontDown = bar.querySelector("#font-down"), fontUp = bar.querySelector("#font-up"), fontReset = bar.querySelector("#font-reset");
+    function paintFont() {
+      fontReset.textContent = fontSize + "%";
+      fontReset.setAttribute("aria-label", "Text size " + fontSize + "%. Reset to 100%.");
+      fontDown.disabled = fontSize <= FONT_MIN;
+      fontUp.disabled = fontSize >= FONT_MAX;
+    }
+    function setFont(n) { fontSize = clampFont(n); save(FONT_KEY, fontSize); applyFont(); paintFont(); }
+    paintFont();
+    fontDown.addEventListener("click", function () { setFont(fontSize - FONT_STEP); });
+    fontUp.addEventListener("click", function () { setFont(fontSize + FONT_STEP); });
+    fontReset.addEventListener("click", function () { setFont(100); });
     var menuBtn = bar.querySelector("#menu-btn");
     menuBtn.setAttribute("aria-expanded", "false");
     menuBtn.setAttribute("aria-controls", "sidebar");
@@ -123,6 +161,24 @@
       var open = body.classList.toggle("nav-open");
       menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
     });
+  }
+
+  /* ---------- Reading progress bar (lessons) ---------- */
+  function wireReadbar() {
+    if (!currentId) return;
+    var bar = el("div", { id: "readbar", "aria-hidden": "true" });
+    body.appendChild(bar);
+    var queued = false;
+    function paint() {
+      queued = false;
+      var docEl = document.documentElement, max = docEl.scrollHeight - window.innerHeight;
+      var done = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      bar.style.transform = "scaleX(" + done.toFixed(4) + ")";
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(paint); } }
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    paint();
   }
 
   function updateProgressPill() {
@@ -148,9 +204,11 @@
       LESSONS.filter(function (l) { return l.level === lv.id; }).forEach(function (l) {
         var cls = "lesson-link" + (l.id === currentId ? " active" : "") + (isDone(l.id) ? " done" : "");
         html += '<a class="' + cls + '" href="' + href(l) + '"><span class="num">' + (isDone(l.id) ? "✓" : l.id) + '</span><span>' + esc(l.title) + '</span></a>';
+        if (l.id === currentId) html += sectionListHtml();
       });
     });
     nav.innerHTML = html;
+    paintSections();
     if (prevQuery) document.getElementById("course-search").value = prevQuery;
     wireSearch();
     var active = nav.querySelector(".active");
@@ -159,6 +217,53 @@
       // Scroll only the sidebar (scrollIntoView would also scroll the page)
       nav.scrollTop = Math.max(0, active.offsetTop - nav.clientHeight / 2);
     }
+  }
+
+  /* ---------- Sections of the open lesson: listed under it in the menu, ticked as you read past them ---------- */
+  var SECTIONS_KEY = "infrasim.sections." + currentId;
+  var sections = currentId ? Array.prototype.slice.call(document.querySelectorAll("article h2:not(.box-title)")) : [];
+  var sectionsRead = load(SECTIONS_KEY, []);
+  var sectionNow = "";
+  function sectionListHtml() {
+    if (!sections.length) return "";
+    return '<ul class="section-list" aria-label="Sections of this lesson">' + sections.map(function (h) {
+      return '<li><a href="#' + h.id + '" data-section="' + h.id + '"><span class="tick" aria-hidden="true"></span>' +
+        '<span>' + esc(h.textContent) + '</span><span class="sr-only sec-state"></span></a></li>';
+    }).join("") + '</ul>';
+  }
+  function paintSections() {
+    var links = document.querySelectorAll("#sidebar .section-list a");
+    links.forEach(function (a) {
+      var id = a.getAttribute("data-section"), read = sectionsRead.indexOf(id) !== -1;
+      a.classList.toggle("read", read);
+      a.classList.toggle("now", id === sectionNow);
+      if (id === sectionNow) a.setAttribute("aria-current", "location"); else a.removeAttribute("aria-current");
+      a.querySelector(".sec-state").textContent = read ? " (read)" : "";
+    });
+  }
+  function wireSections() {
+    if (!sections.length) return;
+    var queued = false;
+    function check() {
+      queued = false;
+      var docEl = document.documentElement, mid = window.innerHeight / 2;
+      var atEnd = window.scrollY + window.innerHeight >= docEl.scrollHeight - 2;
+      var end = document.querySelector("article .complete-box");
+      var now = "", changed = false;
+      sections.forEach(function (h, i) {
+        if (h.getBoundingClientRect().top <= 140) now = h.id;
+        // A section is read once its end (the next heading, or the end of the lesson) has moved above the middle of the window.
+        var next = sections[i + 1] || end;
+        var past = atEnd || (next && next.getBoundingClientRect().top < mid);
+        if (past && sectionsRead.indexOf(h.id) === -1) { sectionsRead.push(h.id); changed = true; }
+      });
+      if (changed) save(SECTIONS_KEY, sectionsRead);
+      if (changed || now !== sectionNow) { sectionNow = now; paintSections(); }
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(check); } }
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    check();
   }
 
   /* ---------- Sidebar resize and collapse (desktop) ---------- */
@@ -374,7 +479,7 @@
         (next ? '<a class="next" href="' + href(next) + '"><small>Next →</small>' + esc(next.title) + '</a>'
               : '<a class="next" href="' + root + 'index.html"><small>Finished!</small>Back to course home</a>');
     }
-    document.title = lesson.title + " · infra-sim";
+    document.title = lesson.title + " · infra-recover";
   }
 
   /* ---------- Home page ---------- */
@@ -408,7 +513,10 @@
     }
     var reset = document.getElementById("reset-btn");
     if (reset) reset.addEventListener("click", function () {
-      if (confirm("Reset your course progress?")) { completed = []; save(STORE_KEY, completed); buildHome(); updateProgressPill(); }
+      if (confirm("Reset your course progress?")) { completed = []; save(STORE_KEY, completed);
+        LESSONS.forEach(function (l) { try { localStorage.removeItem("infrasim.sections." + l.id); } catch (e) { /* storage unavailable */ } });
+        buildHome(); updateProgressPill();
+      }
     });
   }
 
@@ -461,6 +569,14 @@
       if (code.parentElement.querySelector(".copy-btn")) return;
       if (window.hljs) { try { window.hljs.highlightElement(code); } catch (e) { /* ignore */ } }
       var pre = code.parentElement;
+      // Line numbers on code of two lines or more. Terminal output and text diagrams (plaintext) stay unnumbered.
+      var lines = code.textContent.replace(/\n$/, "").split("\n").length;
+      if (lines > 1 && !/\blanguage-plaintext\b/.test(code.className)) {
+        var nums = [];
+        for (var n = 1; n <= lines; n++) nums.push(n);
+        pre.classList.add("numbered");
+        pre.insertBefore(el("span", { "class": "ln", "aria-hidden": "true" }, nums.join("\n")), code);
+      }
       var btn = el("button", { "class": "copy-btn", type: "button" }, "Copy");
       btn.addEventListener("click", function () {
         var text = code.innerText;
@@ -469,6 +585,18 @@
       });
       pre.appendChild(btn);
     });
+  }
+
+  /* ---------- Wide tables scroll sideways: make them reachable from the keyboard ---------- */
+  function wireTables() {
+    var tables = document.querySelectorAll("article table");
+    function update() {
+      tables.forEach(function (t) {
+        if (t.scrollWidth > t.clientWidth + 1) { t.tabIndex = 0; } else { t.removeAttribute("tabindex"); }
+      });
+    }
+    update();
+    window.addEventListener("resize", update);
   }
 
   /* ---------- Heading anchors ---------- */
@@ -509,9 +637,12 @@
   decorateLesson();
   buildHome();
   updateProgressPill();
+  wireReadbar();
+  wireSections();
+  wireTables();
   wireQuizzes();
   wireCode();
   document.addEventListener("click", function (e) {
-    if (body.classList.contains("nav-open") && !e.target.closest("#sidebar") && !e.target.closest("#menu-btn")) body.classList.remove("nav-open");
+    if (body.classList.contains("nav-open") && (e.target.closest(".section-list a") || (!e.target.closest("#sidebar") && !e.target.closest("#menu-btn")))) body.classList.remove("nav-open");
   });
 })();

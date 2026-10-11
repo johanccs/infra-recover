@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scenario library and sandbox · infra-sim</title>
+<title>Scenario library and sandbox · infra-recover</title>
 <meta name="description" content="All 51 Docker, Kubernetes, Helm and Argo CD scenarios in one place, plus a free-play sandbox terminal.">
-<meta property="og:title" content="Scenario library and sandbox · infra-sim">
+<meta property="og:title" content="Scenario library and sandbox · infra-recover">
 <meta property="og:description" content="Pick a broken Docker, Kubernetes, Helm or Argo CD setup and fix it in a simulated terminal.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/css/course.css">
 <script src="assets/js/theme-init.js"></script>
+<script src="assets/js/backup.js"></script>
 </head>
 <body data-root="" data-page="sandbox">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -50,7 +51,7 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
-<script src="assets/js/infra-sim.js"></script>
+<script src="assets/js/infra-recover.js"></script>
 <script src="assets/js/course.js"></script>
 <script src="assets/js/terminal.js"></script>
 <script src="assets/js/sandbox.js"></script>
