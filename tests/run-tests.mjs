@@ -1,5 +1,5 @@
 // End-to-end checks for the course site.
-// Serves the repository under /infra-sim/ (like GitHub Pages) and drives Chromium with Playwright.
+// Serves the repository under /infra-recover/ (like GitHub Pages) and drives Chromium with Playwright.
 // Usage: npm ci && npx playwright install chromium && npm test
 import { createServer } from "node:http";
 import { readFile, readdir } from "node:fs/promises";
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const BASE = "/infra-sim/";
+const BASE = "/infra-recover/";
 const AXE = await readFile(require.resolve("axe-core/axe.min.js"), "utf8");
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json" };
 

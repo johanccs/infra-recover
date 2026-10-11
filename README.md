@@ -2,7 +2,7 @@
 
 A self-paced, **scenario-based** course on **Docker, Kubernetes, Helm and Argo CD**, from beginner to expert, with a **simulator that runs in the browser** and a built-in AI tutor. Every lesson puts you in a terminal with a situation to build or, more often, something broken to diagnose and fix.
 
-- **Live site:** https://johanccs.github.io/infra-sim/
+- **Live site:** https://johanccs.github.io/infra-recover/
 - **Locally:** open `index.html` in a browser. You don't need a server, Docker or a cluster.
 
 The sandbox models **Docker Engine 29**, **Docker Compose v5**, **Kubernetes 1.37**, **Helm 4** and **Argo CD 3**. Content was last reviewed in **October 2026**.
@@ -35,7 +35,7 @@ There are **51 scenarios**: 22 guided hands-on ones and **29 fix-it scenarios** 
 | Helm | A chart that won't render (template error, then YAML error) · a release stuck in `pending-upgrade` |
 | Argo CD | Drift · a bad commit under self-heal · `ComparisonError` · a three-application launch-day incident |
 
-Each scenario has tasks that are **checked automatically** as you type, **hints** per task, a **diagnosis question**, the full **solution**, and an explanation of **why the fix works**. All of them are also available on one page, the [scenario library](https://johanccs.github.io/infra-sim/sandbox.html), together with an empty free-play sandbox.
+Each scenario has tasks that are **checked automatically** as you type, **hints** per task, a **diagnosis question**, the full **solution**, and an explanation of **why the fix works**. All of them are also available on one page, the [scenario library](https://johanccs.github.io/infra-recover/sandbox.html), together with an empty free-play sandbox.
 
 ## The simulator
 
